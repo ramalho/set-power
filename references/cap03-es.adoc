@@ -1,0 +1,1738 @@
+[[ch_dicts_sets]]
+== Diccionarios y conjuntos
+:example-number: 0
+:figure-number: 0
+
+[quote, Lalo Martins, pionero del nomadismo digital y pythonista]
+____
+Python está hecho básicamente de diccionarios cubiertos por muchas capas de azúcar sintáctico
+____
+
+Usamos diccionarios en todos nuestros programas Python.
+Si no directamente en nuestro código, entonces indirectamente,
+ya que el tipo `dict` es un elemento fundamental de la implementación de Python.
+Los atributos de clases e instancias,
+los espacios de nombres de módulos y los argumentos con nombre de funciones son algunos de los
+elementos fundamentales de Python representados en memoria por diccionarios.
+El `+__builtins__.__dict__+` almacena todos los tipos, funciones y objetos integrados.
+
+Por su papel crucial, los dicts de Python están extremadamente optimizados—y siguen recibiendo mejoras.
+Las _tablas de hash_((("hash tables"))) son el motor detrás del alto rendimiento de los dicts de Python.
+
+Otros tipos integrados basados en tablas de hash son `set` y `frozenset`.
+Ofrecen una API más completa y operadores más robustos que
+los conjuntos que quizás encontraste en otros lenguajes populares.
+En particular, los conjuntos de Python implementan todas las operaciones fundamentales de la teoría de conjuntos,
+como unión, intersección, pruebas de subconjuntos, etc.
+Con ellos podemos expresar algoritmos de forma más declarativa,
+evitando el exceso de bucles y condicionales anidados.
+
+A continuación un breve esquema del capítulo:
+
+* La sintaxis moderna((("dictionaries and sets", "topics covered"))) para crear y manipular `dicts`
+y mapeos, incluido el desempaquetado extendido y la coincidencia de patrones (_pattern matching_)
+* Métodos comunes de los tipos de mapeos
+* Manejo especial para claves ausentes
+* Variantes de `dict` en la biblioteca estándar
+* Los tipos `set` y `frozenset`
+* Las implicaciones de las tablas de hash en el comportamiento de conjuntos y diccionarios.
+
+
+=== Novedades en este capítulo
+
+La((("dictionaries and sets", "significant changes to"))) mayor parte de los cambios en esta
+segunda edición se concentra en nuevas funcionalidades relacionadas con los tipos de mapeo:
+
+* La <<modern_dict_syntax_sec>> habla de la sintaxis mejorada de desempaquetado
+y de distintas formas de fusionar mapeos—incluidos los operadores `|` y `|=`, soportados por los `dicts` desde Python 3.9.
+* La <<pattern_matching_mappings_sec>> ilustra el manejo de mapeos con `match/case`, funcionalidad incorporada en Python 3.10.
+* La <<ordereddict_sec>> ahora se centra en las pequeñas pero aún relevantes diferencias entre
+`dict` y `OrderedDict`—teniendo en cuenta que, desde Python 3.6, `dict` mantiene el orden de inserción de las claves.
+* Nuevas secciones sobre los objetos vista devueltos por `dict.keys`, `dict.items`, y `dict.values`:
+la <<dictionary_views_sec>> y la <<set_ops_dict_views_sec>>.
+
+La implementación interna de `dict` y `set` sigue basada en tablas de hash,
+pero el código de `dict` tuvo dos optimizaciones importantes,
+que ahorran memoria y preservan el orden de inserción de las claves.
+La <<conseq_dict_internal_sec>> y la <<consequences_set_sec>>
+resumen lo que necesitas saber sobre esto para usar bien estas estructuras.
+
+[NOTE]
+====
+Tras((("dictionaries and sets", "internals of"))) agregar más de 200 páginas a esta segunda edición, transferí la sección opcional
+https://fpy.li/hashint["Internals of sets and dicts" (_Las entrañas de los sets y los dicts_)] (EN)
+al http://fluentpython.com, el sitio que complementa el libro.
+El https://fpy.li/hashint[post de 18 páginas] (EN) fue actualizado y ampliado, e incluye explicaciones y diagramas sobre:
+
+* El algoritmo de tabla de hash y las estructuras de datos, comenzando por su uso en `set`, que es más sencillo de entender.
+* La optimización de memoria que preserva el orden de inserción de claves en instancias de `dict` (desde Python 3.6).
+* El diseño del compartimiento de claves en diccionarios que mantienen atributos de
+instancia—el `+__dict__+` de objetos definidos por el usuario (optimización implementada en Python 3.3).
+====
+
+
+[[modern_dict_syntax_sec]]
+=== La sintaxis moderna de los dicts
+
+Las((("dictionaries and sets", "modern dict syntax", id="DASsyntax03"))) siguientes secciones describen
+las funcionalidades avanzadas de sintaxis para crear, desempaquetar y procesar mapeos.
+Algunas de estas funcionalidades no son nuevas en el lenguaje, pero pueden serlo para ti.
+Otras requieren Python 3.9 (como el operador `|`) o Python 3.10 (como `match/case`).
+Comencemos por una de las mejores y más antiguas de estas funcionalidades.
+
+[[dictcomp_sec]]
+==== Comprensiones de dict
+
+Desde((("dictcomps (dict comprehensions)"))) Python 2.7, la sintaxis de las listcomps y genexps fue adaptada para comprensiones de `dict`
+(y también comprensiones de `set`, que veremos pronto).
+Una _dictcomp_ (comprensión de dict) crea una instancia de `dict`, recibiendo pares `key:value` de cualquier iterable.
+El <<example3-1>> muestra el uso de comprensiones de `dict` para crear dos diccionarios a partir de una misma lista de tuplas.
+
+[[example3-1]]
+.Ejemplos de comprensiones de `dict`
+====
+[source, python]
+----
+>>> dial_codes = [                                                  # <1>
+...     (880, 'Bangladesh'),
+...     (55,  'Brazil'),
+...     (86,  'China'),
+...     (91,  'India'),
+...     (62,  'Indonesia'),
+...     (81,  'Japan'),
+...     (234, 'Nigeria'),
+...     (92,  'Pakistan'),
+...     (7,   'Russia'),
+...     (1,   'United States'),
+... ]
+>>> country_dial = {country: code for code, country in dial_codes}  # <2>
+>>> country_dial
+{'Bangladesh': 880, 'Brazil': 55, 'China': 86, 'India': 91, 'Indonesia': 62,
+'Japan': 81, 'Nigeria': 234, 'Pakistan': 92, 'Russia': 7, 'United States': 1}
+>>> {code: country.upper()                                          # <3>
+...     for country, code in sorted(country_dial.items())
+...     if code < 70}
+{55: 'BRAZIL', 62: 'INDONESIA', 7: 'RUSSIA', 1: 'UNITED STATES'}
+----
+====
+<1> Un iterable de pares clave-valor como `dial_codes` puede pasarse directamente al constructor de `dict`, pero...
+<2> ...aquí intercambiamos los pares: `country` es la clave y `code` es el valor.
+<3> Ordenando `country_dial` por nombre, invirtiendo nuevamente los pares, poniendo los valores en mayúsculas y filtrando los ítems con `code < 70`.
+
+Si ya usas listcomps, las dictcomps son el siguiente paso natural.
+En caso contrario, la propagación de la sintaxis de comprensión muestra que ahora es más valioso que nunca dominar esta técnica.
+
+
+[[dict_unpacking_sec]]
+[role="pagebreak-before less_space"]
+==== Desempaquetando mapeos
+
+La https://fpy.li/pep448[PEP 448—Additional Unpacking Generalizations (_Generalizaciones Adicionales de Desempaquetado_)]
+mejoró el soporte al desempaquetado de mapeos((("unpacking", "mapping unpackings")))((("mappings", "unpacking")))
+de dos formas, desde Python 3.5.
+
+Primero, podemos((("&#x002A;&#x002A; (double star) operator")))((("double star (&#x002A;&#x002A;) operator")))
+aplicar `**` a más de un argumento en una llamada de función.
+Esto funciona cuando todas las claves son strings y únicas,
+para todos los argumentos (porque los argumentos con nombre duplicados están prohibidos):
+
+[source, python]
+----
+>>> def dump(**kwargs):
+...     return kwargs
+...
+>>> dump(**{'x': 1}, y=2, **{'z': 3})
+{'x': 1, 'y': 2, 'z': 3}
+----
+
+En segundo lugar, `**` puede usarse dentro de un literal `dict`—también múltiples veces:
+
+[source, python]
+----
+>>> {'a': 0, **{'x': 1}, 'y': 2, **{'z': 3, 'x': 4}}
+{'a': 0, 'x': 4, 'y': 2, 'z': 3}
+----
+
+En este caso, las claves duplicadas están permitidas.
+Cada ocurrencia sobreescribe las ocurrencias anteriores—observa el valor mapeado para `x` en el ejemplo.
+
+Esta sintaxis también puede usarse para fusionar mapeos, pero hay otras formas de hacerlo.
+Continuemos.
+
+==== Fusionando mapeos con |
+
+Desde la versión 3.9, Python((("mappings",
+"merging")))((("&#x01C0; (pipe) operator")))((("pipe (&#x01C0;) operator")))((("&#x01C0;&#x3D; (pipe equals) operator")))((("pipe equals (&#x01C0;&#x3D;) operator")))
+soporta el uso de `|` y `|=` para fusionar mapeos.
+Tiene todo el sentido,
+ya que estos son también los operadores de unión de conjuntos.
+
+El operador `|` crea un nuevo mapeo:
+
+[source, python]
+----
+>>> d1 = {'a': 1, 'b': 3}
+>>> d2 = {'a': 2, 'b': 4, 'c': 6}
+>>> d1 | d2
+{'a': 2, 'b': 4, 'c': 6}
+----
+
+El tipo del nuevo mapeo normalmente será el mismo que el del operando izquierdo—en el ejemplo,
+`d1`—pero puede ser del tipo del segundo operando si hay tipos definidos por el usuario en la operación,
+dependiendo de las reglas de sobrecarga de operadores, que exploraremos en el <<ch_op_overload>>.
+
+Para actualizar mapeos existentes en el lugar, usa `|=`.
+Retomando el ejemplo anterior, allí `d1` no fue modificado.
+Pero aquí sí:
+
+[source, python]
+----
+>>> d1
+{'a': 1, 'b': 3}
+>>> d1 |= d2
+>>> d1
+{'a': 2, 'b': 4, 'c': 6}
+----
+
+[TIP]
+====
+Si necesitas mantener código corriendo en Python 3.8 o anterior, la sección
+https://fpy.li/3-1["Motivation" (_Motivación_)] (EN) de la
+https://fpy.li/pep584[PEP 584—Add Union Operators To dict (_Agregar Operadores de Unión a dict_)]
+(EN) incluye un buen resumen de otras formas de fusionar mapeos.
+====
+
+Ahora veamos cómo la coincidencia de patrones se aplica a los mapeos.((("", startref="DASsyntax03")))
+
+[[pattern_matching_mappings_sec]]
+=== Pattern matching con mapeos
+
+La((("pattern matching", "with mappings", secondary-sortas="mappings",
+id="PMmap03")))((("mappings", "pattern matching with",
+id="Mpattern03")))((("match/case statement")))((("dictionaries and sets", "pattern matching with mappings",
+id="DASmap03")))
+instrucción `match/case` soporta sujetos que sean objetos de mapeo.
+Los patrones para mapeos se parecen a los literales `dict`,
+pero pueden coincidir con instancias de cualquier subclase real o virtual de `collections.abc.Mapping`.footnote:[Una
+subclase virtual es
+cualquier clase registrada con una llamada al método `.register()` de un ABC,
+como se explica en la <<virtual_subclass_sec>>.
+Un tipo implementado mediante la API Python/C también sirve, si tiene el bit de bandera específico activado en el encabezado.
+Ver https://fpy.li/2z[`Py_TPFLAGS_MAPPING`] (EN).]
+
+En el <<ch_sequences>> nos concentramos solo en los patrones de secuencia,
+pero diferentes tipos de patrones pueden combinarse y anidarse.
+Gracias a la desestructuración, la coincidencia de patrones es una herramienta poderosa para
+procesar registros estructurados como secuencias y mapeos anidados,
+que frecuentemente necesitamos leer de APIs JSON o bases de datos
+que soportan registros o campos semiestructurados,
+como MongoDB, EdgeDB, o PostgreSQL.
+El <<dict_match_ex>> lo demuestra.
+
+Las sugerencias de tipo simples en `get_creators` dejan claro que recibe un `dict` y devuelve una `list`.
+
+[[dict_match_ex]]
+.creator.py: `get_creators()` extrae el nombre de los creadores en registros de medios
+====
+[source, python]
+----
+include::../code/03-dict-set/py3.10/creator.py[tags=DICT_MATCH]
+----
+====
+[role="pagebreak-before less_space"]
+<1> Coincide con cualquier mapeo de la forma `'type': 'book', 'api' :2`, y una clave `'authors'`
+mapeada a una secuencia.
+Devuelve los ítems de la secuencia como una nueva `list`.
+<2> Coincide con cualquier mapeo de la forma `'type': 'book', 'api' :1`, y una clave `'author'`
+mapeada a cualquier objeto.
+Devuelve ese objeto dentro de una `list`.
+<3> Cualquier otro mapeo de la forma `'type': 'book'` es inválido y genera un `ValueError`.
+<4> Coincide con cualquier mapeo de la forma `'type': 'movie'` y una clave `'director'`
+mapeada a un solo objeto.
+Devuelve el objeto dentro de una `list`.
+<5> Cualquier otro sujeto es inválido y genera un `ValueError`.
+
+El <<dict_match_ex>> muestra algunas prácticas útiles para manejar datos semiestructurados, como registros JSON:
+
+* Incluir un campo que describa el tipo de registro (por ejemplo, `'type': 'movie'`)
+* Incluir un campo que identifique la versión del esquema (por ejemplo, `'api': 2'`),
+para permitir evoluciones futuras de las APIs públicas.
+* Tener cláusulas `case` para procesar registros inválidos de un tipo específico (por ejemplo, `'book'`),
+así como un `case` final para capturar todo lo que haya pasado las condiciones anteriores.
+
+Ahora veamos cómo se comporta `get_creators` con algunos doctests concretos:
+
+[source, python]
+----
+include::../code/03-dict-set/py3.10/creator.py[tags=DICT_MATCH_TEST]
+----
+
+Observa que el orden de las claves en los patrones es irrelevante, incluso si el sujeto es un `OrderedDict` como `b2`.
+
+A diferencia de los patrones de secuencia, los patrones de mapeo funcionan con coincidencias parciales.
+En los doctests, los sujetos `b1` y `b2` incluyen una clave `'title'`,
+que no aparece en ningún patrón `'book'`, pero aun así coinciden.
+
+No es necesario usar `+**extra+` para coincidir con pares clave-valor adicionales,
+pero si quieres capturarlos como un `dict`, puedes prefijar una variable con `**`.
+Debe ser la última del patrón, y `+**_+` está prohibido, ya que sería redundante.
+Un ejemplo simple:
+
+
+[source, python]
+----
+>>> food = dict(category='ice cream', flavor='vanilla', cost=199)
+>>> match food:
+...     case {'category': 'ice cream', **details}:
+...         print(f'Ice cream details: {details}')
+...
+Ice cream details: {'flavor': 'vanilla', 'cost': 199}
+----
+
+En la <<mappings_flexible_sec>>, estudiaremos `defaultdict` y
+otros mapeos donde las búsquedas con claves mediante `+__getitem__+`
+(es decir, `d[clave]`) funcionan porque los ítems ausentes se crean al momento.
+En el contexto de la coincidencia de patrones,
+una coincidencia es exitosa solo si el sujeto ya tiene las claves necesarias al inicio del bloque `match`.
+
+[TIP]
+====
+El manejo automático de claves ausentes no se activa porque
+la coincidencia de patrones siempre usa el método `d.get(key, sentinel)`—donde el
+`sentinel` por defecto es un marcador con valor especial, que no puede aparecer en los datos del usuario.
+====
+
+Vista la sintaxis y la estructura, estudiemos la API de los mapeos.((("",
+startref="PMmap03")))((("", startref="Mpattern03")))((("", startref="DASmap03")))
+
+
+=== La API estándar de los tipos de mapeo
+
+El((("dictionaries and sets", "standard API of mapping types", id="DASapi03")))((("mappings",
+"standard API of mapping types", id="Mapi03")))((("collections.abc module",
+"Mapping and MutableMapping ABCs")))((("MutableMapping ABC")))
+módulo `collections.abc` contiene los ABCs `Mapping` y `MutableMapping`,
+que describen las interfaces de `dict` y tipos similares.
+Ver la <<mapping_uml>>.((("UML class diagrams", "simplified for MutableMapping and superclasses")))
+
+La mayor utilidad de estos ABCs es documentar y formalizar las interfaces estándar para los mapeos,
+y servir de criterio para pruebas con `isinstance` en código que necesite soportar mapeos de forma general:
+
+[source, python]
+----
+>>> my_dict = {}
+>>> isinstance(my_dict, abc.Mapping)
+True
+>>> isinstance(my_dict, abc.MutableMapping)
+True
+----
+
+[TIP]
+====
+Usar `isinstance` con un ABC es muchas veces mejor que comprobar si un argumento de función
+es del tipo concreto `dict`, porque así pueden usarse tipos alternativos de mapeo.
+Lo discutiremos en detalle en el <<ch_ifaces_prot_abc>>.
+====
+
+[[mapping_uml]]
+.Diagrama de clases simplificado para `MutableMapping` y sus superclases de `collections.abc` (las flechas de herencia apuntan de las subclases a las superclases; los nombres en cursiva indican clases y métodos abstractos
+image::../images/flpy_0301.png[Diagrama de clases UML para `Mapping` y `MutableMapping`]
+
+Para implementar un mapeo personalizado, es más fácil extender `collections.UserDict`,
+o envolver un `dict` por composición, en vez de crear una subclase de estos ABCs.
+La clase `collections.UserDict` y todas las clases concretas de mapeo de la biblioteca estándar
+encapsulan el `dict` básico en sus implementaciones, que a su vez se construye sobre una tabla de hash.
+Así, todas comparten la misma limitación:
+las((("keys", "hashability"))) claves deben ser _hashable_
+(los valores no necesitan ser hashable, solo las claves).
+Si necesitas un repaso, la siguiente sección lo explica.
+
+[[what_is_hashable_sec]]
+==== ¿Qué es hashable?
+
+Aquí((("hashable, definition of"))) está parte de la definición de hashable, adaptado del
+https://fpy.li/32[_Glosario_ de Python]:
+
+[quote]
+____
+Un objeto es hashable si tiene un código hash que nunca cambia durante su ciclo de vida
+(necesita tener un método `+__hash__+`) y puede compararse con otros objetos
+(necesita tener un método `+__eq__+`).
+Los objetos hashable que se comparan como iguales deben tener el mismo código hash.footnote:[La
+entrada de "hashable" en el
+https://fpy.li/32[_Glosario_ de Python]
+usa el término "valor hash" en vez de((("hash code, versus hash value"))) _código hash_.
+Prefiero _código hash_ porque "valor" es un concepto frecuentemente usado en el contexto de mapeos,
+donde los ítems se componen de claves y valores.
+Entonces puede ser confuso referirse al código hash como un valor.
+En este libro usaré solo _código hash_.]
+____
+
+Los tipos numéricos((("numeric types", "hashability of"))) y los tipos simples inmutables `str` y `bytes` son todos hashable.
+Los tipos contenedor son hashable si son inmutables y si todos los objetos que contienen también son hashable.
+Un `frozenset` siempre es hashable, ya que todos los elementos que contiene deben ser, por definición, hashable.
+Una `tuple` es hashable solo si todos sus ítems también lo son.
+Observa las tuplas `tt`, `tl`, y `tf`:
+
+[source, python]
+----
+>>> tt = (1, 2, (30, 40))
+>>> hash(tt)
+8027212646858338501
+>>> tl = (1, 2, [30, 40])
+>>> hash(tl)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: unhashable type: 'list'
+>>> tf = (1, 2, frozenset([30, 40]))
+>>> hash(tf)
+-4118419923444501110
+----
+
+El código hash de un objeto puede ser diferente dependiendo de la versión de Python, la arquitectura de la máquina,
+y por la((("salt"))) _sal_ agregada al cálculo del hash por razones de seguridad.footnote:[Ver la
+https://fpy.li/pep456[PEP 456—Secure and interchangeable hash algorithm (_Algoritmo de hash seguro e intercambiable_)] (EN)
+para saber más sobre las implicaciones de seguridad y las soluciones adoptadas.]
+El código hash de un objeto correctamente implementado tiene la garantía de ser constante solo dentro de un proceso Python.
+
+Los tipos definidos por el usuario son hashable por defecto, ya que su código hash es su `id()`, y el método `+__eq__()+`
+heredado de la clase `object` solo compara los IDs de los objetos.
+Si un objeto implementa su propio `+__eq__()+`, que tome en cuenta su estado interno,
+será hashable solo si su `+__hash__()+` siempre devuelve el mismo código hash.
+En la práctica, esto exige que `+__eq__()+` y `+__hash__()+` tomen en cuenta solo
+atributos de instancia que nunca cambien durante la vida del objeto.
+
+
+Ahora revisemos la API de los tipos de mapeo más comúnmente usados en Python: `dict`, `defaultdict`, y `OrderedDict`.
+
+
+==== Revisión de los métodos más comunes de los mapeos
+
+La((("defaultdict")))((("OrderedDict")))((("collections.abc module", "defaultdict and OrderedDict")))
+API básica para mapeos es bastante completa.
+La <<mapping_methods_tbl>> muestra los métodos implementados por `dict` y las variantes más usadas:
+`defaultdict` y `OrderedDict`, ambas clases definidas en el módulo `collections`.
+
+[role="pagebreak-before less_space"]
+[[mapping_methods_tbl]]
+.Métodos de los tipos de mapeo `dict`, `collections.defaultdict`, y `collections.OrderedDict` (métodos comunes de `object` omitidos por concisión); los argumentos opcionales están entre `[…]`
+[options="header"]
+|===========================================================================================================================================================================================================================================================================
+|                             |dict  |defaultdict  |OrderedDict  | &#xa0;
+|                 `d.clear()` |  ●   |      ●      |      ●      | Elimina todos los ítems.
+|         `+d.__contains__(k)+` |  ●   |      ●      |      ●      | `k in d`
+|                  `d.copy()` |  ●   |      ●      |      ●      | Copia superficial
+|              `+d.__copy__()+` |      |      ●      |             | Soporte para `copy.copy(d)`.
+|         `d.default_factory` |      |      ●      |             | Invocable que `+__missing__+` usa para crear valores ausentesfootnote:[`default_factory` no es un método, sino un atributo invocable definido por el usuario al instanciar un `defaultdict`.]
+|          `+d.__delitem__(k)+` |  ●   |      ●      |      ●      | `del d[k]`—elimina el ítem con clave `k`
+| `d.fromkeys(it, [initial])` |  ●   |      ●      |      ●      | Nuevo mapeo con claves en el iterable `it`, con un valor inicial opcional (el valor por defecto es `None`)
+|       `d.get(k, [default])` |  ●   |      ●      |      ●      | Obtiene el ítem con clave `k`, devuelve `default` o `None` si `k` no existe
+|          `+d.__getitem__(k)+` |  ●   |      ●      |      ●      | ++d[k]++—obtiene el ítem con clave `k`
+|                 `d.items()` |  ●   |      ●      |      ●      | Obtiene una _vista_ de los ítems—pares `(clave, valor)`
+|              `+d.__iter__()+` |  ●   |      ●      |      ●      | Obtiene iterador de las claves
+|                  `d.keys()` |  ●   |      ●      |      ●      | Obtiene _vista_ de las claves
+|               `+d.__len__()+` |  ●   |      ●      |      ●      | `len(d)`—número de ítems
+|          `+d.__missing__(k)+` |      |      ●      |             | Llamado cuando `+__getitem__+` no puede encontrar la clave
+|  `d.move_to_end(k, [last])` |      |             |      ●      | Mueve `k` a la primera o última posición (`last` es `True` por defecto).
+|           `+d.__or__(other)+` |  ●   |      ●      |      ●      | Soporte para `d1 \| d2` para crear un nuevo `dict`, fusionando `d1` y `d2` (Python ≥ 3.9)
+|          `+d.__ior__(other)+` |  ●   |      ●      |      ●      | Soporte para `d1 \|= d2` para actualizar `d1` con `d2` (Python ≥ 3.9)
+|       `d.pop(k, [default])` |  ●   |      ●      |      ●      | Elimina y devuelve el valor en `k`, o `default` o `None`, si `k` no existe
+|               `d.popitem()` |  ●   |      ●      |      ●      | Elimina y devuelve, como `(clave, valor)`, el último ítem insertadofootnote:[`OrderedDict.popitem(last=False)` elimina el primer ítem insertado (FIFO). El argumento con nombre `last` no es soportado por `dict` o `defaultdict`, al menos hasta Python 3.10b3.]
+|          `+d.__reversed__()+` |  ●   |      ●      |      ●      | Soporte para `reverse(d)`—devuelve un iterador de claves, de la última a la primera insertada
+|          `+d.__ror__(other)+` |  ●   |      ●      |      ●      | Soporte para `other \| dd`—operador de unión invertido (Python ≥ 3.9)footnote:[Los operadores reversos se tratan en el <<ch_op_overload>>.]
+|`d.setdefault(k, [default])` |  ●   |      ●      |      ●      | Si `k in d`, devuelve `d[k]`; si no, asigna `d[k] = default` y lo devuelve
+|       `+d.__setitem__(k, v)+` |  ●   |      ●      |      ●      | `d[k] = v`—pone `v` en `k`
+|   `d.update(m, [**kwargs])` |  ●   |      ●      |      ●      | Actualiza `d` con ítems de un mapeo o iterable de pares `(clave, valor)`
+|                `d.values()` |  ●   |      ●      |      ●      | Obtiene una _vista_ de los valores
+|===========================================================================================================================================================================================================================================================================
+
+La forma en que `d.update(m)` maneja su primer argumento, `m`,
+es un excelente ejemplo((("duck typing"))) de _duck typing_ (_tipado pato_):
+primero verifica si `m` tiene un método `keys` y, en caso afirmativo,
+asume que `m` es un mapeo.
+De lo contrario, `update()` recurre a la iteración sobre `m`,
+asumiendo que sus ítems son pares `(clave, valor)`.
+El constructor de la mayoría de los mapeos de Python usa internamente la lógica de `update()`,
+lo que significa que pueden inicializarse con otros mapeos
+o desde cualquier objeto iterable que produzca pares `(clave, valor)`.
+
+Un método sutil de los mapeos es `setdefault()`.
+Evita búsquedas redundantes de claves cuando necesitamos actualizar el valor de un ítem en el mismo lugar.
+La siguiente sección muestra cómo puede usarse.
+
+==== Insertar o actualizar valores mutables
+
+Alineado((("fail-fast philosophy")))((("defensive programming")))((("mutable values, inserting or updating", id="MVinsert03")))
+con la filosofía de _fallar rápido_ de Python, la consulta a un `dict` con `d[k]` genera un error cuando `k` no es una clave existente.
+Los pythonistas saben que `d.get(k, default)` es una alternativa a `d[k]` cuando recibir un valor por defecto es
+más conveniente que manejar un `KeyError`.
+Sin embargo, si estás buscando un valor mutable y quieres actualizarlo, hay una mejor manera.
+
+Considera un script para indexar texto, que produce un mapeo donde cada clave es una palabra,
+y el valor es una lista de las posiciones donde aparece esa palabra, como se muestra en el <<index0_output_ex>>.
+
+[[index0_output_ex]]
+.Salida parcial del <<index0_ex>> procesando el texto "Zen of Python"; cada línea muestra una palabra y una lista de ocurrencias en la forma de pares `(line_number, column_number)` (número de línea, número de columna).
+====
+[source]
+----
+$ python3 index0.py zen.txt
+a [(19, 48), (20, 53)]
+Although [(11, 1), (16, 1), (18, 1)]
+ambiguity [(14, 16)]
+and [(15, 23)]
+are [(21, 12)]
+aren [(10, 15)]
+at [(16, 38)]
+bad [(19, 50)]
+be [(15, 14), (16, 27), (20, 50)]
+beats [(11, 23)]
+Beautiful [(3, 1)]
+better [(3, 14), (4, 13), (5, 11), (6, 12), (7, 9), (8, 11), (17, 8), (18, 25)]
+...
+----
+====
+
+El <<index0_ex>> es un script deficiente, para mostrar un caso donde `dict.get`
+no es la mejor manera de manejar una clave ausente.
+Fue adaptado de un ejemplo de Alex Martelli.footnote:[El script original aparece en la diapositiva 41 de
+la presentación de Martelli, https://fpy.li/3-5["Re-learning Python" (_Reaprendiendo Python_)] (EN).
+El script es, en realidad, una demostración de `dict.setdefault`, como se ve en nuestro <<index_ex>>.]
+
+[[index0_ex]]
+.index0.py usa `dict.get` para obtener y actualizar una lista de ocurrencias de palabras de un índice (se presenta una mejor solución en el <<index_ex>>)
+====
+[source, python]
+----
+include::../code/03-dict-set/index0.py[tags=INDEX0]
+----
+====
+<1> Obtiene la lista de ocurrencias de `word`, o `[]` si la palabra no se encuentra.
+<2> Agrega una nueva ubicación a `occurrences`.
+<3> Pone la `occurrences` modificada en el dict `index`; esto requiere una segunda búsqueda en `index`.
+<4> No estoy llamando `str.upper` en el argumento `key=` de `sorted`, sino pasando una referencia a ese método,
+para que la función `sorted` pueda usarlo para normalizar las palabras antes de ordenarlas.footnote:[Esto
+es un ejemplo del uso de un método como una función de primera clase, tema del <<ch_func_objects>>.]
+
+Las tres líneas que manejan `occurrences` en el <<index0_ex>> pueden reemplazarse por una sola línea
+usando `dict.setdefault`. El <<index_ex>> se acerca más al código presentado por Alex Martelli.
+
+[[index_ex]]
+.index.py usa `dict.setdefault` para obtener y actualizar una lista de ocurrencias de una palabra en una sola línea de código; comparar con el <<index0_ex>>
+====
+[source, python]
+----
+include::../code/03-dict-set/index.py[tags=INDEX]
+----
+====
+<1> Obtiene la lista de ocurrencias de `word`, o la define como `[]`, si no se encuentra;
+`setdefault` devuelve el valor, por lo que puede actualizarse sin una segunda búsqueda.
+
+En otras palabras, el resultado final de esta línea...
+
+[source, python]
+----
+my_dict.setdefault(key, []).append(new_value)
+----
+
+...es el mismo que ejecutar...
+
+[source, python]
+----
+if key not in my_dict:
+    my_dict[key] = []
+my_dict[key].append(new_value)
+----
+
+...excepto que este último fragmento ejecuta al menos dos búsquedas de `key`—tres si
+la clave no se encuentra—mientras que `setdefault` hace todo esto con una sola búsqueda.
+
+Una cuestión relacionada, el manejo de claves ausentes en cualquier búsqueda (y no solo para inserción de valores),
+es el tema de la siguiente sección.((("", startref="MVinsert03")))((("", startref="Mapi03")))((("", startref="DASapi03")))
+
+[[mappings_flexible_sec]]
+=== Manejo automático de claves ausentes
+
+A veces((("dictionaries and sets", "automatic handling of missing keys", id="DASmissing03")))((("keys",
+"automatic handling of missing", id="Kauto03")))((("mappings", "automatic handling of missing keys", id="Mauto03")))
+es conveniente que los mapeos devuelvan algún valor predeterminado cuando se busca una clave ausente.
+Hay dos enfoques principales para este fin: uno es usar un `defaultdict` en vez de un `dict` simple.
+El otro es crear una subclase de `dict` o de cualquier otro tipo de mapeo y agregar un método `+__missing__+`.
+Veamos las dos soluciones a continuación.
+
+[[defaultdict_sec]]
+==== defaultdict: otra perspectiva sobre las claves ausentes
+
+Una instancia de `collections.defaultdict`((("defaultdict"))) crea ítems con un valor por defecto bajo demanda,
+cada vez que se busca una clave ausente usando la sintaxis `d[k]`.
+El <<index_default_ex>> usa `defaultdict` para ofrecer otra solución elegante para el índice de palabras del <<index_ex>>.
+
+Funciona así: al instanciar un `defaultdict`,
+proporcionas un invocable que produce un valor por defecto cada vez que `+__getitem__+` recibe una clave inexistente como argumento.
+
+Por ejemplo, dado un `defaultdict` creado con `dd = defaultdict(list)`,
+si `'new-key'` no está en `dd`, la expresión `dd['new-key']` sigue estos pasos:
+
+. Llama a `list()` para crear una nueva lista.
+. Inserta la lista en `dd` usando `'new-key'` como clave.
+. Devuelve una referencia a esa lista.
+
+El invocable que produce los valores por defecto se mantiene en un atributo de instancia llamado `default_factory`.
+
+[[index_default_ex]]
+.index_default.py: usando un `defaultdict` en vez del método `setdefault`
+====
+[source, python]
+----
+include::../code/03-dict-set/index_default.py[tags=INDEX_DEFAULT]
+----
+====
+<1> Crea un `defaultdict` con el constructor de `list` como `default_factory`.
+<2> Si `word` no está inicialmente en `index`, el `default_factory` es llamado para
+producir el valor ausente, que en este caso es una `list` vacía,
+que entonces se asigna a `index[word]` y se devuelve, de forma que la operación
+`.append(location)` siempre tiene éxito.
+
+Si no se proporciona ningún `default_factory`, se genera el `KeyError` habitual para claves ausentes.
+
+[WARNING]
+====
+El `default_factory` de un `defaultdict` solo se invoca para proporcionar valores por defecto en llamadas a `+__getitem__+`,
+no para otros métodos.
+Por ejemplo, si `dd` es un `defaultdict` y `k` una clave ausente, `dd[k]` llamará a `default_factory`
+para crear un valor por defecto,
+pero `dd.get(k)` devolverá `None`, y `k in dd` resulta `False`.
+====
+
+El mecanismo que hace funcionar `defaultdict`, llamando a `default_factory`,
+es el método especial `+__missing__+`, que presentamos a continuación.
+
+
+[[missing_method_sec]]
+==== El método +__missing__+
+
+Detrás((("&#x005F;&#x005F;missing&#x005F;&#x005F;", id="missing03"))) de la forma en que los mapeos
+manejan las claves ausentes está el método muy apropiadamente llamado `+__missing__+`.
+Este método no está definido en la clase base `dict`, pero `dict` sabe de su existencia:
+si creas una subclase de `dict` e incluyes un método `+__missing__+`, el `+dict.__getitem__+`
+estándar llamará a tu método cada vez que no encuentre una clave, en vez de generar un `KeyError`.
+
+Supón que quieres un mapeo donde las claves se conviertan a `str` cuando se buscan.
+Un caso de uso concreto sería una biblioteca para dispositivos IoT
+(Internet of Things, _Internet de las Cosas_)footnote:[Una biblioteca de este tipo es
+https://fpy.li/3-6[_Pingo.io_], que ya no está en desarrollo activo.],
+donde una tarjeta programable con puertos de propósito general programables (por ejemplo, una Raspberry Pi o un Arduino)
+está representada por una clase "Board" con un atributo `mi_board.puertos`,
+que es un mapeo de los identificadores de los puertos físicos a objetos de software de puertos.
+El identificador del puerto físico puede ser un número o un string como `"A0"` o `"P9_12"`.
+Por consistencia, es deseable que todas las claves en `board.puertos` sean strings,
+pero también es conveniente buscar un puerto por número, como en `mi-arduino.puerto[13]`,
+para evitar que los principiantes tropiecen cuando quieran hacer parpadear el LED en el puerto 13 de sus Arduinos.
+El <<ex_strkeydict0_tests>> muestra cómo funcionaría tal mapeo.
+
+[[ex_strkeydict0_tests]]
+.Al buscar una clave no-string, `StrKeyDict0` la convierte a `str` cuando no se encuentra
+====
+[source, python]
+----
+include::../code/03-dict-set/strkeydict0.py[tags=STRKEYDICT0_TESTS]
+----
+====
+
+El <<ex_strkeydict0>> implementa la clase `StrKeyDict0`, que pasa los doctests anteriores.
+
+[TIP]
+====
+Una mejor forma de crear un mapeo definido por el usuario es crear una subclase de
+`collections.UserDict` en vez de `dict` (como haremos en el <<ex_strkeydict>>).
+Aquí creamos una subclase de `dict` solo para mostrar que `+__missing__+`
+es soportado por el método integrado `+dict.__getitem__+`.
+====
+
+[[ex_strkeydict0]]
+.`StrKeyDict0` convierte claves no-string a string en el momento de la consulta (ver los tests en el <<ex_strkeydict0_tests>>)
+====
+[source, python]
+----
+include::../code/03-dict-set/strkeydict0.py[tags=STRKEYDICT0]
+----
+====
+<1> `StrKeyDict0` hereda de `dict`.
+<2> Verifica si `key` ya es un `str`. Si lo es y está ausente, genera un `KeyError`.
+<3> Crea un `str` de `key` y lo busca.
+<4> El método `get` delega a `+__getitem__+` usando la notación `self[key]`;
+esto da oportunidad a nuestro `+__missing__+` de actuar.
+<5> Si se generó un `KeyError`, `+__missing__+` ya falló, por lo que devolvemos el `default`.
+<6> Busca la clave sin modificar (la instancia puede contener claves que no sean `str`),
+después busca un `str` creado a partir de la clave.
+
+Consideremos por un momento por qué es necesaria la prueba `isinstance(key, str)` en la implementación de `+__missing__+`.
+
+Sin esa prueba, nuestro método `+__missing__+` funcionaría bien con cualquier clave `k`—`str` o no—siempre que `str(k)`
+produjera una clave existente.
+Pero si `str(k)` no fuera una clave existente, tendríamos una recursión infinita.
+En la última línea de `+__missing__+`, `self[str(key)]` llamaría a `+__getitem__+`,
+pasando esa clave `str`, y `+__getitem__+`, a su vez, llamaría
+nuevamente a `+__missing__+`.
+
+El((("&#x005F;&#x005F;contains&#x005F;&#x005F;"))) método `+__contains__+` también es necesario para que
+el comportamiento en este ejemplo sea consistente, ya que la operación `k in d` lo llama,
+pero el método heredado de `dict` no invoca `+__missing__+` con claves ausentes.
+Hay un detalle sutil en nuestra implementación de `+__contains__+`:
+no verificamos la existencia de la clave de la forma pythónica normal—`k in d`—porque `str(key) in self` llamaría
+a `+__contains__+` recursivamente.
+Evitamos esto buscando la clave explícitamente en `self.keys()`.
+
+Una búsqueda como `k in my_dict.keys()` es eficiente en Python 3 incluso para mapeos muy grandes,
+porque `dict.keys()` devuelve una vista, que es similar a un _set_, como veremos en la <<set_ops_dict_views_sec>>.
+Sin embargo, recuerda que `k in my_dict` hace el mismo trabajo,
+y es más rápido porque evita la búsqueda de atributos para encontrar el método `.keys`.
+
+Tenía una razón específica para usar `self.keys()` en el método `+__contains__+` del
+<<ex_strkeydict0>>.
+La verificación de la clave sin modificar `++key in self.keys()++` es necesaria por corrección,
+ya que `StrKeyDict0` no obliga a que todas las claves del diccionario sean de tipo `str`.
+Nuestro único objetivo con este ejemplo simple fue hacer la búsqueda "más amigable",
+no forzar tipos.
+
+[WARNING]
+====
+Las clases definidas por el usuario derivadas de mapeos de la biblioteca estándar pueden o no usar
+`+__missing__+` como alternativa en su implementación de `+__getitem__+`, `get`, o `+__contains__+`,
+como se explica en la siguiente sección.
+====
+
+[[inconsistent_missing_sec]]
+==== El uso inconsistente de +__missing__+ en la biblioteca estándar
+
+Considera los siguientes escenarios, y cómo afectan la búsqueda de claves ausentes:
+
+subclase de `dict`::
+    Una subclase de `dict` que implemente solo `+__missing__+` y ningún otro método.
+    En ese caso, `+__missing__+` solo puede llamarse en `d[k]`, que usará el `+__getitem__+` heredado de `dict`.
+
+subclase de `collections.UserDict`::
+    De la misma forma, una subclase de `UserDict` que implemente solo `+__missing__+` y ningún otro método.
+    El método `get` heredado de `UserDict` llama a `+__getitem__+`.
+    Esto significa que `+__missing__+` puede llamarse para manejar consultas con `d[k]` y con
+    `d.get(k)`.
+
+subclase de `abc.Mapping` con el `+__getitem__+` más simple posible::
+    Una subclase mínima de `abc.Mapping`, implementando `+__missing__+` y los métodos abstractos obligatorios,
+    incluyendo una implementación de `+__getitem__+` que no llama a `+__missing__+`.
+    El método `+__missing__+` nunca se activa en esta clase.
+
+subclase de `abc.Mapping` con `+__getitem__+` llamando a `+__missing__+`::
+    Una subclase mínima de `abc.Mapping`, implementando `+__missing__+` y los métodos abstractos obligatorios,
+    incluyendo una implementación de `+__getitem__+` que llama a `+__missing__+`.
+    El método `+__missing__+` se activa en esta clase para consultas de claves ausentes hechas con
+    `d[k]`, `d.get(k)`, y `k in d`.
+
+Ver
+https://fpy.li/3-7[_missing.py_]
+en el repositorio de ejemplos de código para demostraciones de los escenarios descritos anteriormente.
+
+Los cuatro escenarios que acabo de describir suponen implementaciones mínimas.
+Si tu subclase implementa `+__getitem__+`, `get`, y `+__contains__+`,
+entonces puedes o no hacer que esos métodos usen `+__missing__+`, dependiendo de tus necesidades.
+El punto aquí es mostrar que hay que tener cuidado al crear subclases de los mapeos de la biblioteca estándar
+para usar `+__missing__+`, porque las clases base soportan comportamientos por defecto distintos.
+No olvides que el comportamiento de `setdefault` y `update` también es afectado por la consulta de claves.
+Y por último, dependiendo de la lógica de tu `+__missing__+`,
+puede ser necesario implementar una lógica especial en `+__setitem__+`,
+para evitar inconsistencias o comportamientos sorprendentes.
+Veremos un ejemplo de esto en la <<sublcassing_userdict_sec>>.
+
+Hasta aquí hemos tratado los tipos de mapeo `dict` y `defaultdict`,
+pero la biblioteca estándar trae otras implementaciones de mapeo,
+que discutiremos a continuación.((("", startref="missing03")))((("", startref="Mauto03")))((("",
+startref="Kauto03")))((("", startref="DASmissing03")))
+
+=== Variaciones de dict
+
+En((("dictionaries and sets", "variations of dict", id="DASvardict03"))) esta sección hablaremos brevemente sobre
+los tipos de mapeo incluidos en la biblioteca estándar distintos de `defaultdict`, ya visto en la <<defaultdict_sec>>.
+
+[[ordereddict_sec]]
+==== collections.OrderedDict
+
+Ahora((("collections.abc module", "defaultdict and OrderedDict")))((("OrderedDict"))) que el `dict` integrado
+también mantiene las claves ordenadas (desde Python 3.6),
+el motivo más común para usar `OrderedDict` es escribir código compatible con versiones anteriores de Python.
+Dicho esto, la documentación lista algunas diferencias entre `dict` y `OrderedDict` que
+aún persisten y que cito aquí:
+
+* La operación de igualdad para `OrderedDict` verifica la igualdad del orden.
+* El método `popitem()` de `OrderedDict` tiene una firma diferente,
+que acepta un argumento opcional que especifica qué ítem se devolverá.
+* `OrderedDict` tiene un método `move_to_end()`, que reposiciona un elemento hacia uno de los extremos del diccionario de forma eficiente.
+* El `dict` común fue diseñado para ser muy bueno en las operaciones de mapeo.
+Preservar el orden de inserción era una preocupación secundaria.
+* `OrderedDict` fue diseñado para ser bueno en operaciones de reordenamiento.
+La eficiencia de espacio, la velocidad de iteración y el rendimiento de las operaciones de actualización eran preocupaciones secundarias.
+* En términos del algoritmo, un `OrderedDict` maneja mejor que un dict las operaciones frecuentes de reordenamiento.
+Esto lo hace adecuado para monitorear accesos recientes (en un caché LRUfootnote:[LRU: Least Recently Used (_Menos Recientemente Usado_),
+esquema de caché que descarta el ítem almacenado que lleva más tiempo sin solicitudes], por ejemplo).
+
+
+[[chainmap_sec]]
+==== collections.ChainMap
+
+Una((("collections.abc module", "ChainMap")))((("ChainMap"))) instancia de `ChainMap` mantiene
+una lista de mapeos que pueden consultarse como si fueran un único mapeo.
+La búsqueda se realiza en cada mapa incluido, en el orden en que aparecen en la llamada al constructor,
+y tiene éxito en cuanto la clave se encuentra en uno de esos mapeos.
+Por ejemplo:
+
+[source, python]
+----
+>>> d1 = dict(a=1, b=3)
+>>> d2 = dict(a=2, b=4, c=6)
+>>> from collections import ChainMap
+>>> chain = ChainMap(d1, d2)
+>>> chain['a']
+1
+>>> chain['c']
+6
+----
+
+La instancia de `ChainMap` no crea copias de los mapeos, mantiene referencias a ellos.
+Las actualizaciones o inserciones en un `ChainMap` afectan solo al primer mapeo pasado.
+Continuando el ejemplo anterior:
+
+[source, python]
+----
+>>> chain['c'] = -1
+>>> d1
+{'a': 1, 'b': 3, 'c': -1}
+>>> d2
+{'a': 2, 'b': 4, 'c': 6}
+----
+
+Un `ChainMap` es útil en la implementación de lenguajes con ámbitos anidados,
+donde cada mapeo representa un contexto de ámbito,
+desde el ámbito anidado más interno hasta el más externo.
+La sección
+https://fpy.li/33["Objetos ChainMap"],
+en la documentación de `collections`, presenta varios ejemplos del uso de `ChainMap`,
+incluido este fragmento inspirado en las reglas básicas de búsqueda de variables en Python:
+
+[source, python]
+----
+import builtins
+pylookup = ChainMap(locals(), globals(), vars(builtins))
+----
+
+La <<lispy_environ_sec>> explica una subclase de `ChainMap` usada para implementar
+un intérprete parcial del lenguaje de programación Scheme.
+
+
+==== collections.Counter
+
+Un((("collections.abc module", "Counter")))((("Counter"))) mapeo que mantiene una cuenta para cada clave.
+Actualizar una clave existente agrega a su cuenta.
+Puede usarse para contar instancias de objetos hashable o como un _multiset_ (multiconjunto),
+comentado más adelante en esta sección.
+`Counter` implementa los operadores `+` y `-` para combinar cuentas,
+y otros métodos útiles como `most_common([n])`,
+que devuelve una lista ordenada de tuplas con los _n_ ítems más comunes y sus cuentas; ver la
+https://fpy.li/34[documentación].
+
+Aquí tenemos un `Counter` usado para contar las letras en palabras:
+
+[source, python]
+----
+>>> ct = collections.Counter('abracadabra')
+>>> ct
+Counter({'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1})
+>>> ct.update('aaaaazzz')
+>>> ct
+Counter({'a': 10, 'z': 3, 'b': 2, 'r': 2, 'c': 1, 'd': 1})
+>>> ct.most_common(3)
+[('a', 10), ('z', 3), ('b', 2)]
+----
+
+Observa que las claves `'b'` y `'r'` están empatadas en el tercer lugar, pero
+`ct.most_common(3)` muestra solo tres cuentas.
+
+Para usar `collections.Counter` como un multiconjunto, trata cada clave como un elemento de un conjunto,
+y la cuenta será el número de ocurrencias de ese elemento en el conjunto.
+
+
+==== shelve.Shelf
+
+El((("shelve module")))((("pickle module")))((("keys", "persistent storage for mapping"))) módulo `shelve`
+en la biblioteca estándar proporciona almacenamiento persistente a un mapeo de claves
+en formato string a objetos Python serializados en formato binario `pickle`.
+El curioso nombre, `shelve`, tiene sentido cuando te das cuenta de que los frascos de `pickle` se guardan en
+estantes.footnote:[NT: "_to shelve_" es "_poner en el estante_", "_pickle_" también significa "_encurtido_"
+y "pickles" son literalmente _pepinillos en escabeche_.
+El juego de palabras de los desarrolladores de Python es sobre poner `pickles` en `shelves`.]
+
+La función de módulo `shelve.open` devuelve una instancia de `shelve.Shelf`—una base de datos DBM simple de clave-valor,
+basada en el módulo `dbm`, con las siguientes características:
+
+* `shelve.Shelf` es una subclase de `abc.MutableMapping`,
+por lo que provee los métodos esenciales esperados de un tipo de mapeo.
+* Además, `shelve.Shelf` provee otros métodos de gestión de E/S, como `sync` y `close`.
+* Una instancia de `Shelf` es un gestor de contexto,
+por lo que es posible usar un bloque `with` para garantizar que se cierre tras el uso.
+* Las claves y los valores se guardan siempre que se asigna un nuevo valor a una clave.
+* Las claves deben ser strings.
+* Los valores deben ser objetos que el módulo `pickle` pueda serializar.
+
+La documentación para los módulos
+https://fpy.li/35[shelve],
+https://fpy.li/36[dbm] (EN), y
+https://fpy.li/37[pickle]
+trae más detalles y también algunas advertencias.
+
+[WARNING]
+====
+El `pickle` de Python es fácil de usar en los casos más simples, pero tiene varios inconvenientes.
+Lee el https://fpy.li/3-13["Pickle's nine flaws"], de Ned Batchelder,
+antes de adoptar cualquier solución que involucre `pickle`.
+En su post, Ned menciona otros formatos de serialización que pueden considerarse como alternativas.
+====
+
+Las clases `OrderedDict`, `ChainMap`, `Counter`, y `Shelf` pueden usarse directamente,
+pero también pueden personalizarse mediante subclases.
+`UserDict`, por otro lado, fue diseñada solo como clase base para ser extendida.
+
+
+[[sublcassing_userdict_sec]]
+==== Creando subclases de UserDict en vez de dict
+
+Es((("collections.abc module", "UserDict", id="coluserdict03")))((("UserDict", id="userdict03")))
+mejor crear un nuevo tipo de mapeo extendiendo `collections.UserDict` en vez de `dict`.
+Nos damos cuenta de esto cuando intentamos extender nuestro `StrKeyDict0` del <<ex_strkeydict0>>
+para asegurar que cualquier clave agregada al mapeo se almacene como `str`.
+
+La razón principal por la que es mejor crear una subclase de `UserDict` en vez de `dict` es
+que el tipo integrado tiene algunos atajos de implementación,
+que terminan obligándonos a sobreescribir métodos que podríamos simplemente heredar de `UserDict`
+sin problemas.footnote:[El problema exacto de crear subclases de `dict` y otros tipos integrados
+se trata en la <<subclass_builtin_woes_sec>>.]
+
+Observa que `UserDict` no hereda de `dict`, sino que usa composición:
+la clase tiene una instancia interna de `dict`, llamada `data`, que mantiene los ítems propiamente dichos.
+Esto evita recursión no deseada al escribir métodos especiales como `+__setitem__+`,
+y simplifica la programación de `+__contains__+`, comparado con el <<ex_strkeydict0>>.
+
+Gracias((("keys", "converting nonstring keys to str"))) a `UserDict`, el `StrKeyDict` (<<ex_strkeydict>>)
+es más conciso que `StrKeyDict0` (<<ex_strkeydict0>>), pero hace más aún:
+almacena todas las claves como `str`,
+evitando sorpresas desagradables si la instancia se crea o actualiza con
+datos que contengan claves de otros tipos (que no sean string).
+
+[[ex_strkeydict]]
+.`StrKeyDict` siempre convierte claves que no son strings a `str` en la inserción, actualización y búsqueda
+====
+[source, python]
+----
+include::../code/03-dict-set/strkeydict.py[tags=STRKEYDICT]
+----
+====
+<1> `StrKeyDict` extiende `UserDict`.
+<2> `+__missing__+` es exactamente igual al del <<ex_strkeydict0>>.
+<3> `+__contains__+` es más simple: podemos asumir que todas las claves almacenadas son `str`,
+y podemos operar sobre `self.data` en vez de invocar `self.keys()`, como hicimos en `StrKeyDict0`.
+<4> `+__setitem__+` convierte cualquier `key` a `str`.
+Este método es más fácil de sobreescribir cuando podemos delegar al atributo `self.data`.
+
+Como `UserDict` extiende `abc.MutableMapping`, el resto de los métodos que hacen de `StrKeyDict`
+un mapeo completo se heredan de `UserDict`, `MutableMapping`, o `Mapping`.
+Estos últimos contienen varios métodos concretos útiles, a pesar de ser clases base abstractas (ABCs).
+Los siguientes métodos son dignos de mención:
+
+`MutableMapping.update`:: Este método poderoso puede llamarse directamente, pero también es usado por
+`+__init__+` para crear la instancia a partir de otros mapeos, iterables de pares `(clave, valor)`,
+y argumentos con nombre.
+Como usa `self[clave] = valor` para agregar ítems,
+termina invocando nuestra implementación de `+__setitem__+`.
+
+`Mapping.get`:: En `StrKeyDict0` (<<ex_strkeydict0>>),
+necesitamos codificar nuestro propio `get` para devolver los mismos resultados que `+__getitem__+`,
+pero en el <<ex_strkeydict>> heredamos `Mapping.get`, que está implementado exactamente como `StrKeyDict0.get`
+(consulta el https://fpy.li/3-14[código fuente de Python]).
+
+[TIP]
+====
+Antoine Pitrou escribió la
+https://fpy.li/pep455[PEP 455--Adding a key-transforming dictionary to collections
+(_Agregar un diccionario con transformación de claves a collections_)]
+(EN) y un parche para mejorar el módulo `collections` con una clase `TransformDict`,
+que es más genérica que `StrKeyDict` y preserva las claves tal como se proporcionaron antes de aplicar la transformación.
+La PEP 455 fue rechazada en mayo de 2015—ver el https://fpy.li/3-15[mensaje de rechazo] (EN)
+de Raymond Hettinger.
+Para experimentar con `TransformDict`,
+extraje el parche de Pitrou del https://fpy.li/3-16[issue18986] (EN)
+en un módulo independiente (https://fpy.li/3-17[_03-dict-set/transformdict.py_]
+disponible en el https://fpy.li/code[repositorio de código de la segunda edición de _Fluent Python_]).
+====
+
+Sabemos que existen tipos de secuencias inmutables, ¿pero qué hay de los mapeos inmutables?
+No existe un tipo real de ese tipo en la biblioteca estándar, pero hay un sustituto disponible.
+Es lo que viene a continuación.((("", startref="userdict03")))((("", startref="userdict03")))((("", startref="DASvardict03")))
+
+
+=== Mapeos inmutables
+
+Los((("dictionaries and sets", "immutable mappings")))((("mappings", "immutable mappings")))((("immutable mappings")))
+tipos de mapeo disponibles en la biblioteca estándar son todos mutables,
+pero puede ser deseable impedir que los usuarios cambien un mapeo por accidente.
+Un caso de uso concreto puede encontrarse, nuevamente, en una biblioteca de programación de hardware como
+la((("Pingo library"))) _Pingo_, mencionada en la <<missing_method_sec>>:
+el mapeo `board.pins` representa los puertos de GPIO (General Purpose Input/Output, _Entrada/Salida de Propósito General_)
+en un dispositivo.
+De esta forma, sería útil evitar actualizaciones descuidadas de `board.pins`,
+ya que el hardware no puede modificarse vía software:
+cualquier cambio en el mapeo lo volvería inconsistente con la realidad física del dispositivo.
+
+El módulo `types` ofrece una clase envolvente (_wrapper_) llamada `MappingProxyType` que,
+dado un mapeo, devuelve una instancia de `mappingproxy`,
+que es un proxy solo de lectura (pero dinámico) del mapeo original.
+Esto significa que las actualizaciones al mapeo original se reflejan en el `mappingproxy`,
+pero ningún cambio puede hacerse a través de este último.
+Ve una breve demostración en el <<ex_MappingProxyType>>.
+
+[[ex_MappingProxyType]]
+.`MappingProxyType` crea una instancia de solo lectura de `mappingproxy` a partir de un `dict`
+====
+[source, python]
+----
+>>> from types import MappingProxyType
+>>> d = {1: 'A'}
+>>> d_proxy = MappingProxyType(d)
+>>> d_proxy
+mappingproxy({1: 'A'})
+>>> d_proxy[1]  <1>
+'A'
+>>> d_proxy[2] = 'x'  <2>
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: 'mappingproxy' object does not support item assignment
+>>> d[2] = 'B'
+>>> d_proxy  <3>
+mappingproxy({1: 'A', 2: 'B'})
+>>> d_proxy[2]
+'B'
+>>>
+----
+====
+<1> Los ítems de `d` pueden verse a través de `d_proxy`.
+<2> No es posible hacer modificaciones a través de `d_proxy`.
+<3> `d_proxy` es dinámico: cualquier cambio en `d` se refleja allí.
+
+
+Esto puede usarse así en la práctica, en el escenario de la programación de hardware:
+el constructor en una subclase concreta `Board` llenaría un mapeo privado con los objetos puerto,
+y lo expondría a los clientes de la API mediante un atributo público `.puertos`, implementado como un `mappingproxy`.
+De esta forma los clientes no podrían agregar, eliminar o modificar los puertos por accidente.
+
+A continuación estudiaremos _vistas_—que permiten operaciones de alto rendimiento en un `dict`, sin copias innecesarias de datos.
+
+
+[[dictionary_views_sec]]
+[role="pagebreak-before less_space"]
+=== Vistas de diccionarios
+
+Los objetos `dict`((("dictionaries and sets", "dictionary views", id="DASviews03"))) implementan los métodos
+`.keys()`, `.values()`, e `.items()`, que devuelven instancias de clases llamadas
+`dict_keys`, `dict_values`, y `dict_items`, respectivamente.
+Estas vistas de diccionario son proyecciones de solo lectura de estructuras de datos internas
+usadas en la implementación de `dict`.
+Evitan el uso de memoria adicional de los métodos equivalentes en Python 2,
+que construían listas, duplicando datos ya presentes en el `dict`.
+Y también reemplazan los métodos antiguos que devolvían iteradores.
+
+El <<ex_dict_values>> muestra algunas operaciones básicas soportadas por todas las vistas de diccionario.
+
+[[ex_dict_values]]
+.El método `.values()` devuelve una vista de los valores en un `dict`
+====
+[source, python]
+----
+>>> d = dict(a=10, b=20, c=30)
+>>> values = d.values()
+>>> values
+dict_values([10, 20, 30])  <1>
+>>> len(values)  <2>
+3
+>>> list(values)  <3>
+[10, 20, 30]
+>>> reversed(values)  <4>
+<dict_reversevalueiterator object at 0x10e9e7310>
+>>> values[0] <5>
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: 'dict_values' object is not subscriptable
+----
+====
+<1> El `repr` de un objeto vista muestra su contenido.
+<2> Podemos consultar el `len` de una vista.
+<3> Las vistas son iterables, por lo que es fácil crear listas a partir de ellas.
+<4> Las vistas implementan `+__reversed__+`, devolviendo un iterador personalizado.
+<5> No es posible usar `[]` para obtener ítems individuales de una vista.
+
+Un objeto vista es un proxy dinámico.
+Si el `dict` fuente se actualiza, los cambios pueden verse inmediatamente a través de una vista existente.
+Continuando desde el <<ex_dict_values>>:
+
+[source, python]
+----
+>>> d['z'] = 99
+>>> d
+{'a': 10, 'b': 20, 'c': 30, 'z': 99}
+>>> values
+dict_values([10, 20, 30, 99])
+----
+
+Las clases `dict_keys`, `dict_values`, y `dict_items` son internas:
+no están disponibles vía `+__builtins__+` ni en ningún módulo de la biblioteca estándar,
+e incluso si obtienes una referencia a una de ellas,
+no puedes usar esa referencia para crear una vista desde cero en tu código Python:
+
+[source, python]
+----
+>>> values_class = type({}.values())
+>>> v = values_class()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: cannot create 'dict_values' instances
+----
+
+La clase `dict_values` es la vista de diccionario más simple—implementa solo los métodos especiales
+`+__len__+`, `+__iter__+`, e `+__reversed__+`.
+Además de estos métodos, `dict_keys` y `dict_items` implementan varios métodos de los _sets_,
+casi tantos como la clase `frozenset`.
+Después de ver los conjuntos, volveremos a estudiar `dict_keys` y `dict_items`,
+en la <<set_ops_dict_views_sec>>.
+
+Ahora veamos algunas reglas y consejos basados en la forma en que `dict` está
+implementado por dentro.((("", startref="DASviews03")))
+
+[[conseq_dict_internal_sec]]
+=== Consecuencias prácticas de cómo funciona dict
+
+La((("dictionaries and sets", "consequences of how dict works"))) implementación de la tabla de hash del
+`dict` de Python es muy eficiente, pero es importante entender los efectos prácticos de este diseño:
+
+* Las((("keys", "practical consequences of using dict"))) claves deben ser objetos hashable.
+Deben implementar los métodos `+__hash__+` y `+__eq__+` apropiados, como se describe en la <<what_is_hashable_sec>>.
+* El acceso a los ítems mediante la clave es muy rápido.
+Incluso si un `dict` tiene millones de claves, Python puede localizar una clave directamente,
+calculando el código hash de la clave y derivando un desplazamiento del índice en la tabla de hash,
+con un posible costo de un pequeño número de intentos hasta encontrar la entrada correspondiente.
+* El ordenamiento de las claves se preserva,
+como efecto secundario de un diseño de memoria más compacto para `dict` en CPython 3.6,
+que se convirtió en una característica oficial del lenguaje en 3.7.
+* A pesar de su nuevo diseño compacto, los dicts presentan inevitablemente
+un uso adicional significativo de memoria.
+La estructura de datos interna más compacta para un contenedor sería un array de punteros a los
+ítems.footnote:[Así es como se almacenan las tuplas.]
+Comparado con eso, una tabla de hash necesita almacenar más datos por entrada y, para mantener la eficiencia,
+Python necesita mantener al menos un tercio de las filas de la tabla de hash vacías.
+* Para ahorrar memoria, evita crear atributos de instancia fuera del método `+__init__+`.
+
+Este último consejo, sobre atributos de instancia, es consecuencia del comportamiento por defecto de Python,
+de almacenar atributos de instancia en un atributo `+__dict__+` especial,
+que es un `dict` vinculado a cada instancia.footnote:[A menos que la clase tenga un atributo `+__slots__+`,
+como se explica en la <<slots_sec>>.]
+Desde la implementación de la
+https://fpy.li/pep412[PEP 412—Key-Sharing Dictionary (_Diccionario de Compartimiento de Claves_)] (EN),
+en Python 3.3, las instancias de una clase pueden compartir una tabla de hash común, almacenada con la clase.
+Esa tabla de hash común es compartida por el `+__dict__+` de cada nueva instancia que,
+cuando `+__init__+` retorna, tiene los mismos nombres de atributo que la primera instancia creada en esa clase.
+El `+__dict__+` de cada instancia entonces puede mantener solo sus propios valores de atributo como
+un array de punteros.
+Agregar un atributo de instancia después de `+__init__+` obliga a Python a crear una nueva tabla de hash
+solo para el `+__dict__+` de esa instancia (que era el comportamiento por defecto antes de Python 3.3).
+De acuerdo con la PEP 412, esta optimización reduce el uso de memoria entre un 10% y un 20% en programas orientados a objetos.
+Los detalles de las optimizaciones del diseño compacto y del compartimiento de claves son bastante complejos.
+Para saber más, lee https://fpy.li/hashint["Internals of sets and dicts"] (EN).
+
+Ahora estudiemos los conjuntos.
+
+
+=== Teoría de conjuntos
+
+Los((("sets", "set theory", id=Stheory03")))((("dictionaries and sets", "set theory",
+id="DASset03")))((("frozenset")))
+conjuntos no son nuevos en Python, pero siguen siendo algo subutilizados.
+El tipo `set` y su hermano inmutable, `frozenset`,
+surgieron inicialmente como módulos en la biblioteca estándar de Python 2.3,
+y fueron promovidos a tipos integrados en Python 2.6.
+
+[NOTE]
+====
+En este libro, uso la palabra "conjunto" para referirme tanto a `set` como a `frozenset`.
+====
+
+Un conjunto es una colección de objetos únicos.
+Una gran utilidad de los conjuntos es descartar ítems duplicados:
+
+[source, python]
+----
+>>> l = ['spam', 'spam', 'eggs', 'spam', 'bacon', 'eggs']
+>>> set(l)
+{'eggs', 'spam', 'bacon'}
+>>> list(set(l))
+['eggs', 'spam', 'bacon']
+----
+
+[TIP]
+====
+Para eliminar elementos duplicados preservando el orden de la primera ocurrencia de cada ítem,
+puedes hacerlo con un `dict` simple, así:
+[source, python]
+----
+>>> dict.fromkeys(l).keys()
+dict_keys(['spam', 'eggs', 'bacon'])
+>>> list(dict.fromkeys(l).keys())
+['spam', 'eggs', 'bacon']
+----
+====
+
+Los elementos de un conjunto deben ser _hashable_.
+El tipo `set` no es hashable, por lo que no es posible crear un `set` con instancias anidadas de `set`.
+Pero `frozenset` es hashable, así que puedes tener instancias de `frozenset` dentro de un `set`.
+
+Además de garantizar que cada elemento es único,
+los tipos conjunto implementan muchas operaciones entre conjuntos como operadores infijos.
+Así, dados dos conjuntos `a` y `b`, `a | b` devuelve su unión,
+`a & b` calcula la intersección, `a - b` la diferencia, y `a ^ b` la diferencia simétrica.
+Cuando se usan bien,
+las operaciones de conjuntos pueden reducir tanto el número de líneas como el tiempo de ejecución de programas Python,
+al mismo tiempo que hacen el código más legible y
+más fácil de entender—eliminando bucles y lógica condicional.
+
+Por ejemplo, imagina que tienes un gran conjunto de direcciones de correo electrónico (el "pajar"—`haystack`)
+y un conjunto más pequeño de direcciones (las "agujas"—`needles`),
+y necesitas contar cuántas agujas existen en el pajar.
+Gracias a la intersección de `set` (el operador `&`),
+es posible expresar esto en una expresión simple (ver el <<ex_set_ops_ex>>).
+
+[[ex_set_ops_ex]]
+.Cuenta las ocurrencias de agujas (_needles_) en un pajar (_haystack_), ambos de tipo set
+====
+[source, python]
+----
+found = len(needles & haystack)
+----
+====
+
+Sin el operador de intersección, sería necesario escribir el <<ex_set_loop_ex>> para realizar
+la misma tarea que ejecuta el <<ex_set_ops_ex>>.
+
+[[ex_set_loop_ex]]
+.Cuenta las ocurrencias de agujas (_needles_) en un pajar (_haystack_); mismo resultado final que el <<ex_set_ops_ex>>
+====
+[source, python]
+----
+found = 0
+for n in needles:
+    if n in haystack:
+        found += 1
+----
+====
+
+El <<ex_set_ops_ex>> es algo más rápido que el <<ex_set_loop_ex>>.
+Por otro lado, el <<ex_set_loop_ex>> funciona para cualquier objeto iterable `needles` y `haystack`,
+mientras que el <<ex_set_ops_ex>> exige que ambos sean conjuntos.
+Pero si no tienes conjuntos a mano, siempre puedes crearlos al momento, como muestra el <<ex_set_ops_ex2>>.
+
+[[ex_set_ops_ex2]]
+.Cuenta las ocurrencias de agujas (_needles_) en un pajar (_haystack_); estas líneas funcionan para cualquier tipo iterable
+====
+[source, python]
+----
+found = len(set(needles) & set(haystack))
+
+# another way:
+found = len(set(needles).intersection(haystack))
+----
+====
+
+Claro, hay el costo adicional involucrado en la creación de los conjuntos en el <<ex_set_ops_ex2>>,
+pero si las `needles` o el `haystack` ya son un `set`,
+la alternativa del <<ex_set_ops_ex2>> puede ser más barata que el <<ex_set_loop_ex>>.
+
+Cualquiera de los ejemplos anteriores es capaz de buscar 1000 elementos en un `haystack` de 10 millones
+de ítems en aproximadamente 0,3 milisegundos—eso es alrededor de 0,3 microsegundos por elemento.
+
+Además de la prueba de existencia extremadamente rápida (gracias a la tabla de hash),
+los tipos integrados `set` y `frozenset` ofrecen una rica API para crear nuevos conjuntos o,
+en el caso de `set`, para modificar conjuntos existentes.
+Discutiremos estas operaciones pronto, después de una observación sobre sintaxis.((("", startref="Stheory03")))
+
+
+==== Literales de set
+
+La((("sets", "set literals"))) sintaxis de literales `set`—`{1}`, `{1, 2}`, etc.—parece
+muy similar a la notación matemática, pero hay una excepción importante:
+no hay notación literal para el `set` vacío, por lo que necesitamos recordar escribir `set()`.
+
+.Peculiaridad sintáctica
+[WARNING]
+====
+Para crear un `set` vacío, usamos el constructor sin argumentos: `set()`.
+Si escribes `{}`, crearás un +dict+ vacío&#x2014;esto no cambió en Python 3.
+====
+
+En Python 3, la representación estándar de los sets como strings siempre usa la notación `{…}`,
+excepto para el conjunto vacío:
+
+[source, python]
+----
+>>> s = {1}
+>>> type(s)
+<class 'set'>
+>>> s
+{1}
+>>> s.pop()
+1
+>>> s
+set()
+----
+
+La sintaxis del `set` literal, como `{1, 2, 3}`, es más rápida y más legible que una llamada al constructor
+(por ejemplo, `set([1, 2, 3])`).
+Esta última forma es más lenta porque, para evaluarla, Python necesita buscar el nombre `set` para obtener su constructor,
+luego crear una lista y, finalmente, pasársela al constructor.
+Por otro lado, para procesar un literal como `{1, 2, 3}`,
+Python ejecuta un bytecode especializado, `BUILD_SET`.footnote:[Esto puede ser interesante, pero no es súper importante.
+Esta diferencia de rendimiento solo ocurrirá cuando se evalúe un literal de conjunto,
+y eso sucede como máximo una vez por proceso Python—cuando se compila un módulo por primera vez.
+Si tienes curiosidad, importa la función `dis` del módulo `dis`,
+y úsala para inspeccionar los bytecodes de un `set` literal—por ejemplo
+ `dis('{1}')`—y una llamada al constructor `set`—`+dis('set([1])')+`]
+
+No hay sintaxis especial para representar literales `frozenset`—solo pueden crearse llamando a su constructor.
+Su representación estándar como string en Python 3 se parece a una llamada al constructor
+de `frozenset` con un argumento `set`.
+Observa la salida en la consola:
+
+[source, python]
+----
+>>> frozenset(range(10))
+frozenset({0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+----
+
+Y hablando de sintaxis, la idea de las listcomps fue adaptada para crear conjuntos también.
+
+
+==== Comprensiones de conjuntos
+
+Las comprensiones de conjuntos((("sets", "set comprehensions"))) (_setcomps_) aparecieron hace bastante tiempo,
+en Python 2.7, junto con las dictcomps que vimos en la <<dictcomp_sec>>. El <<ex_setcomp>> muestra el procedimiento.
+
+[[ex_setcomp]]
+.Crea un conjunto de caracteres Latin-1 que tengan la palabra "SIGN" en sus nombres Unicode
+====
+[source, python]
+----
+>>> from unicodedata import name  <1>
+>>> {chr(i) for i in range(32, 256) if 'SIGN' in name(chr(i),'')}  <2>
+{'§', '=', '¢', '#', '¤', '<', '¥', 'µ', '×', '$', '¶', '£', '©',
+'°', '+', '÷', '±', '>', '¬', '®', '%'}
+----
+====
+<1> Importa la función `name` de `unicodedata` para obtener los nombres de los caracteres.
+<2> Crea un conjunto de caracteres con códigos entre 32 y 255 que contengan la palabra `'SIGN'` en sus nombres.
+
+El orden de la salida cambia en cada proceso Python, debido al hash "salado", mencionado en la <<what_is_hashable_sec>>.
+
+Dejadas de lado las cuestiones de sintaxis, consideremos ahora el comportamiento de los conjuntos.((("", startref="DASset03")))
+
+
+[[consequences_set_sec]]
+[role="pagebreak-before less_space"]
+=== Consecuencias prácticas de cómo funcionan los conjuntos
+
+Los((("dictionaries and sets", "consequences of how set works")))((("sets", "consequences of how set works")))
+tipos `set` y `frozenset` están ambos implementados con una tabla de hash.
+Esto tiene los siguientes efectos:
+
+* Los elementos de conjuntos deben ser objetos hashable.
+Deben implementar los métodos `+__hash__+` y `+__eq__+` adecuados, como se describe en la <<what_is_hashable_sec>>.
+* La prueba de existencia de un elemento es muy eficiente.
+Un conjunto puede tener millones de elementos, pero un elemento puede localizarse directamente,
+calculando el código hash de la clave y derivando un desplazamiento del índice,
+con el posible costo de un pequeño número de intentos hasta encontrar la entrada correspondiente o agotar la búsqueda.
+* Los conjuntos usan más memoria que un array de punteros a sus elementos—que es una estructura más compacta,
+pero menos eficiente para búsquedas cuando su tamaño crece más allá de unos pocos elementos.
+* El orden de los elementos depende del orden de inserción, pero no de forma útil o confiable.
+Si dos elementos son distintos pero tienen el mismo código hash,
+su posición depende de cuál elemento fue insertado primero.
+* Agregar elementos a un conjunto cambia el orden de los elementos existentes.
+Esto ocurre porque el algoritmo se vuelve menos eficiente si la tabla de hash tiene más de dos tercios de ocupación,
+por lo que Python puede mover y redimensionar la tabla a medida que crece.
+Cuando esto sucede, los elementos se reinsertan y su orden relativo puede cambiar.
+
+Ver el post https://fpy.li/hashint["Internals of sets and dicts"] (EN)
+en _http://fluentpython.com_ para más detalles.
+
+Ahora revisemos la amplia selección de operaciones que ofrecen los conjuntos.
+
+[[set_ops_sec]]
+==== Operaciones de conjuntos
+
+La <<set_uml>> da((("dictionaries and sets", "set operations", id="DASset03-ops")))((("sets",
+"set operations", id="Soper03")))((("UML class diagrams", "simplified for MutableSet and superclasses")))
+una visión general de los métodos disponibles en conjuntos mutables e inmutables.
+Muchos de ellos son métodos especiales que sobrecargan operadores, como `&` y `>=`.
+La <<set_operators_tbl>> muestra los operadores matemáticos de conjuntos que tienen
+operadores o métodos correspondientes en Python.
+Ten en cuenta que algunos operadores y métodos realizan cambios internos sobre el conjunto objetivo
+(por ejemplo, `&=`, `difference_update`, etc.).
+Esas operaciones no tienen sentido en el mundo ideal de los conjuntos matemáticos,
+y tampoco están implementadas en `frozenset`.
+
+[role="man-height4"]
+[TIP]
+====
+Los operadores infijos en la <<set_operators_tbl>> exigen que los dos operandos sean conjuntos,
+pero todos los demás métodos reciben uno o más argumentos iterables.
+Por ejemplo, para producir la unión de cuatro colecciones, `a`, `b`, `c`, y `d`, puedes llamar
+`a.union(b, c, d)`, donde `a` debe ser un `set`,
+pero `b`, `c`, y `d` pueden ser iterables de cualquier tipo que produzca ítems hashable.
+Para crear un nuevo conjunto con la unión de cuatro iterables,
+desde Python 3.5 puedes escribir `{*a, *b, *c, *d}` en vez de actualizar un conjunto existente, gracias a la
+https://fpy.li/pep448[PEP 448—Additional Unpacking Generalizations (_Generalizaciones Adicionales de Desempaquetado_)].
+
+====
+
+[[set_uml]]
+.Diagrama de clases UML simplificado para `MutableSet` y sus superclases en `collections.abc` (los nombres en cursiva son clases y métodos abstractos; los métodos de operadores reversos fueron omitidos por concisión).
+image::../images/flpy_0302.png[Diagrama de clases UML para `Set` y `MutableSet`]
+
+[[set_operators_tbl]]
+.Operaciones matemáticas con conjuntos: estos métodos producen un nuevo conjunto o actualizan el conjunto objetivo internamente, si es mutable
+[options="header"]
+|=====================================================================================================================================================================================
+|Math symbol|Python operator| Method                           | Description
+|   S ∩ Z   | `s & z`  |                        `+s.__and__(z)+` | intersección de `s` y `z`
+|           | `z & s`  |                       `+s.__rand__(z)+` | Operador `&` invertido
+|           |          |               `s.intersection(it, …)` | intersección de `s` y todos los conjuntos construidos a partir de iterables `it`, etc.
+|           | `s &= z` |                       `+s.__iand__(z)+` | `s` actualizado con la intersección de `s` y `z`
+|           |          |        `s.intersection_update(it, …)` | `s` actualizado con la intersección de `s` y todos los conjuntos construidos a partir de iterables `it`, etc.
+|   S ∪ Z   | `s \| z` |                         `+s.__or__(z)+` | Unión de `s` y `z`
+|           | `z \| s` |                        `+s.__ror__(z)+` | `\|` invertido
+|           |          |                      `s.union(it, …)` | Unión de `s` y todos los conjuntos construidos a partir de iterables `it`, etc.
+|           | `s \|= z`|                        `+s.__ior__(z)+` | `s` actualizado con la unión de `s` y `z`
+|           |          |                     `s.update(it, …)` | `s` actualizado con la unión de `s` y todos los conjuntos construidos a partir de iterables `it`, etc.
+|  S \ Z    | `s - z`  |                        `+s.__sub__(z)+` | Complemento relativo o diferencia entre `s` y `z`
+|           | `z - s`  |                       `+s.__rsub__(z)+` | Operador `-` invertido
+|           |          |                 `s.difference(it, …)` | Diferencia entre `s` y todos los conjuntos construidos a partir de iterables `it`, etc.
+|           | `s -= z` |                       `+s.__isub__(z)+` | `s` actualizado con la diferencia entre `s` y `z`
+|           |          |          `s.difference_update(it, …)` | `s` actualizado con la diferencia entre `s` y todos los conjuntos construidos a partir de iterables `it`, etc.
+|   S ∆ Z   | `s ^ z`  |                        `+s.__xor__(z)+` | Diferencia simétrica (el complemento de la intersección `s & z`)
+|           | `z ^ s`  |                       `+s.__rxor__(z)+` | Operador `^` invertido
+|           |          |          `s.symmetric_difference(it)` | Complemento de `s & set(it)`
+|           | `s ^= z` |                       `+s.__ixor__(z)+` | `s` actualizado con la diferencia simétrica de `s` y `z`
+|           |          |`s.symmetric_difference_update(it, …)` | `s` actualizado con la diferencia simétrica de `s` y todos los conjuntos construidos a partir de iterables `it`, etc.
+|=====================================================================================================================================================================================
+
+La <<set_comparison_tbl>> lista predicados de conjuntos: operadores y métodos que devuelven `True` o `False`.
+
+[[set_comparison_tbl]]
+.Operadores y métodos de comparación de conjuntos que devuelven un booleano
+[options="header"]
+|===============================================================================================================
+|Math symbol|Python operator| Method              | Description
+| S ∩ Z = ∅ |               |   `s.isdisjoint(z)` | `s` y `z` son disjuntos (no tienen elementos en común)
+|   e ∈ S   | `e in s`      | `+s.__contains__(e)+` | El elemento `e` es miembro de `s`
+|   S ⊆ Z   | `s \<= z`      |       `+s.__le__(z)+` | `s` es un subconjunto del conjunto `z`
+|           |               |    `s.issubset(it)` | `s` es un subconjunto del conjunto creado a partir del iterable `it`
+|   S ⊂ Z   | `s < z`       |       `+s.__lt__(z)+` | `s` es un subconjunto propiofootnote:[En la teoría de conjuntos, A es un _subconjunto propio_ de B si A es subconjunto de B y A es diferente de B.] del conjunto `z`
+|   S ⊇ Z   | `s >= z`      |       `+s.__ge__(z)+` | `s` es un superconjunto del conjunto `z`
+|           |               |  `s.issuperset(it)` | `s` es un superconjunto del conjunto creado a partir del iterable `it`
+|   S ⊃ Z   | `s > z`       |       `+s.__gt__(z)+` | `s` es un superconjunto propio del conjunto `z`
+|===============================================================================================================
+
+
+Además de operadores y métodos derivados de la teoría matemática de conjuntos,
+los tipos conjunto implementan otros métodos para hacer su uso práctico, resumidos en la <<set_methods_tbl>>.
+
+[[set_methods_tbl]]
+.Métodos adicionales de conjuntos
+[options="header"]
+|===================================================================================================================
+|                   | set | frozenset| &#xa0;
+|        `s.add(e)` |  ●  |           | Agrega el elemento `e` a `s`
+|       `s.clear()` |  ●  |           | Elimina todos los elementos de `s`
+|        `s.copy()` |  ●  |     ●     | Copia superficial de `s`
+|    `s.discard(e)` |  ●  |           | Elimina el elemento `e` de `s`, si existe
+|    `+s.__iter__()+` |  ●  |     ●     | Obtiene iterador de `s`
+|     `+s.__len__()+` |  ●  |     ●     | `len(s)`
+|         `s.pop()` |  ●  |           | Elimina y devuelve un elemento de `s`, generando un `KeyError` si `s` está vacío
+|     `s.remove(e)` |  ●  |           | Elimina el elemento `e` de `s`, generando un `KeyError` si `e` no existe en `s`
+|===================================================================================================================
+
+
+Esto concluye nuestra visión general de las funcionalidades de los conjuntos.
+Como prometido en la <<dictionary_views_sec>>,
+ahora veremos cómo dos de los tipos de vistas de diccionario se comportan de manera muy similar
+a un `frozenset`.((("", startref="Soper03")))((("", startref="DASset03-ops")))
+
+
+[[set_ops_dict_views_sec]]
+=== Operaciones de conjuntos en vistas de dict
+
+La <<view_methods_tbl>> muestra((("dictionaries and sets", "set operations on dict views")))((("sets",
+"set operations on dict views")))(((".keys method", primary-sortas="keys method")))(((".items method",
+primary-sortas="items method")))
+cómo los objetos vista devueltos por los métodos `.keys()` e `.items()`
+de dict son notablemente similares a un `frozenset`.
+
+[[view_methods_tbl]]
+.Métodos implementados por `frozenset`, `dict_keys`, y `dict_items`
+[options="header"]
+|========================================================================================================================
+|                                 | frozenset | dict_keys | dict_items | Description
+|                  `+s.__and__(z)+` |     ●     |     ●     |     ●      | `s & z` (intersección de `s` y `z`)
+|                 `+s.__rand__(z)+` |     ●     |     ●     |     ●      | operador `&` invertido
+|              `+s.__contains__()+` |     ●     |     ●     |     ●      | `e in s`
+|                      `s.copy()` |     ●     |           |            | Copia superficial de `s`
+|           `s.difference(it, …)` |     ●     |           |            | Diferencia entre `s` y los iterables `it`, etc.
+|         `s.intersection(it, …)` |     ●     |           |            | Intersección de `s` y los iterables `it`, etc.
+|               `s.isdisjoint(z)` |     ●     |     ●     |     ●      | `s` y `z` son disjuntos (no tienen elementos en común)
+|                `s.issubset(it)` |     ●     |           |            | `s` es un subconjunto del iterable `it`
+|              `s.issuperset(it)` |     ●     |           |            | `s` es un superconjunto del iterable `it`
+|                  `+s.__iter__()+` |     ●     |     ●     |     ●      | obtiene iterador para `s`
+|                   `+s.__len__()+` |     ●     |     ●     |     ●      | `len(s)`
+|                   `+s.__or__(z)+` |     ●     |     ●     |     ●      | `s \| z` (unión de `s` y `z`)
+|                   `+s.__ror__()+` |     ●     |     ●     |     ●      | Operador `\|` invertido
+|              `+s.__reversed__()+` |           |     ●     |     ●      | Obtiene iterador para `s` con el orden invertido
+|                 `+s.__rsub__(z)+` |     ●     |     ●     |     ●      | Operador `-` invertido
+|                  `+s.__sub__(z)+` |     ●     |     ●     |     ●      | `s - z` (diferencia entre `s` y `z`)
+|    `s.symmetric_difference(it)` |     ●     |           |            | Complemento de `s & set(it)`
+|                `s.union(it, …)` |     ●     |           |            | Unión de `s` y los iterables `it`, etc.
+|                   `+s.__xor__()+` |     ●     |     ●     |     ●      | `s ^ z` (diferencia simétrica de `s` y `z`)
+|                  `+s.__rxor__()+` |     ●     |     ●     |     ●      | Operador `^` invertido
+|========================================================================================================================
+
+Específicamente, `dict_keys` y `dict_items` implementan los métodos especiales para soportar las poderosas operaciones de conjuntos
+`&` (intersección), `|` (unión), `-` (diferencia), y `^` (diferencia simétrica).
+
+Por ejemplo, usando `&` es fácil obtener las claves que aparecen en dos diccionarios:
+
+[source, python]
+----
+>>> d1 = dict(a=1, b=2, c=3, d=4)
+>>> d2 = dict(b=20, d=40, e=50)
+>>> d1.keys() & d2.keys()
+{'b', 'd'}
+----
+
+Observa que el valor devuelto por `&` es un `set`.
+Mejor aún: los operadores de conjuntos en vistas de diccionario son compatibles con instancias de `set`.
+Mira esto:
+
+[source, python]
+----
+>>> s = {'a', 'e', 'i'}
+>>> d1.keys() & s
+{'a'}
+>>> d1.keys() | s
+{'a', 'c', 'b', 'd', 'i', 'e'}
+----
+
+[WARNING]
+====
+Una vista obtenida de `dict_items` solo funciona como un conjunto si todos los valores de ese `dict` son hashable.
+Intentar ejecutar operaciones de conjuntos sobre una vista devuelta por `dict_items` que
+contenga valores no-hashable genera un `TypeError: unhashable type 'T'`, siendo `T` el tipo del valor rechazado.
+
+Por otro lado, una vista devuelta por `dict_keys` siempre puede usarse como un conjunto,
+ya que todas las claves son hashable—por definición.
+====
+
+Usar operaciones de conjuntos con vistas puede evitar la necesidad de muchos bucles e ifs
+cuando tu código necesita inspeccionar el contenido de diccionarios.
+¡Deja que la eficiente implementación de Python en C trabaje para ti!
+
+Con esto, concluimos este capítulo.
+
+
+[role="pagebreak-before less_space"]
+=== Resumen del capítulo
+
+Los((("dictionaries and sets", "overview of"))) diccionarios son la piedra fundamental de Python.
+A lo largo de los años, la familiar sintaxis literal `{k1: v1, k2: v2}`
+fue mejorada para soportar desempaquetado con `**` y coincidencia de patrones, así como comprensiones de `dict`.
+
+Además del `dict` básico, la biblioteca estándar ofrece mapeos prácticos listos para usar,
+como `defaultdict`, `ChainMap`, y `Counter`, todos definidos en el módulo `collections`.
+Con la nueva implementación de `dict`, el `OrderedDict` ya no es tan útil como antes,
+pero debería permanecer en la biblioteca estándar para mantener la compatibilidad
+retroactiva—y por sus características específicas ausentes en `dict`,
+como la capacidad de tener en cuenta el ordenamiento de las claves en una comparación `==`.
+También en el módulo `collections` está `UserDict`, una clase base fácil de usar para crear mapeos personalizados.
+
+Dos métodos poderosos disponibles en la mayoría de los mapeos son `setdefault` y `update`.
+El método `setdefault` puede actualizar ítems que mantienen valores mutables—por ejemplo,
+en un `dict` de valores `list`—evitando una segunda búsqueda de la misma clave.
+El método `update` permite insertar o sobreescribir ítems en masa a partir de cualquier otro mapeo,
+desde iterables que proporcionen pares `(clave, valor)` hasta argumentos con nombre.
+Los constructores de mapeos también usan `update` internamente,
+permitiendo que las instancias se inicialicen a partir de otros mapeos,
+de iterables y de argumentos con nombre.
+Desde Python 3.9 también podemos usar el operador `|=` para actualizar un mapeo y
+el operador `|` para crear un nuevo mapeo a partir de la unión de dos mapeos.
+
+Un gancho elegante en la API de mapeo es el método `+__missing__+`,
+que permite personalizar lo que sucede cuando no se encuentra una clave al usar la sintaxis `d[k]`,
+que invoca `+__getitem__+`.
+
+El módulo `collections.abc` ofrece las clases base abstractas `Mapping` y `MutableMapping` como interfaces estándar,
+útiles para la comprobación de tipos en tiempo de ejecución.
+El `MappingProxyType`, del módulo `types`,
+crea una fachada inmutable para un mapeo que necesites proteger de modificaciones accidentales.
+También hay ABCs para `Set` y `MutableSet`.
+
+Las vistas de diccionario fueron una gran novedad en Python 3,
+eliminando el uso innecesario de memoria de los métodos `.keys()`, `.values()`, e `.items()` de Python 2,
+que creaban listas duplicando los datos en la instancia objetivo de `dict`.
+Además, las clases `dict_keys` y `dict_items` soportan los operadores y métodos más útiles de `frozenset`.
+
+
+[[further_reading_dict]]
+[role="pagebreak-before less_space"]
+=== Para saber más
+
+En((("dictionaries and sets", "further reading on"))) la documentación de la Biblioteca Estándar de Python,
+la sección
+https://fpy.li/2w["collections—Tipos de datos de contenedores"]
+incluye ejemplos y recetas prácticas para varios tipos de mapeo.
+El código fuente del módulo, `+Lib/collections/__init__.py+`,
+es una excelente referencia para cualquiera que desee crear nuevos tipos de mapeo
+o entender la lógica de los tipos existentes.
+El capítulo 1 del
+https://fpy.li/pycook3[_Python Cookbook, 3rd ed._] (O'Reilly),
+de David Beazley y Brian K. Jones, trae 20 recetas prácticas y
+perspicaces usando estructuras de datos—la mayoría mostrando formas inteligentes de usar `dict`.
+
+Greg Gandenberger defiende la continuidad del uso de `collections.OrderedDict`,
+con los argumentos de que "explícito es mejor que implícito," compatibilidad retroactiva,
+y el hecho de que algunas herramientas y bibliotecas asumen que el orden de las claves de un `dict`
+es irrelevante—en este post:
+https://fpy.li/3-18["Python Dictionaries Are Now Ordered.
+Keep Using OrderedDict" (_Los diccionarios de Python ahora están ordenados.
+Sigue usando OrderedDict_)] (EN).
+
+La https://fpy.li/pep3106[PEP 3106--Revamping dict.keys(), .values() and .items() (_Renovando dict.keys(), .values() y .items()_)]
+(EN) fue donde Guido van Rossum presentó la funcionalidad de vistas de diccionario para Python 3.
+En el resumen, afirma que la idea vino del Java Collections Framework.
+
+El https://fpy.li/3-19[PyPy] fue el primer intérprete Python en implementar la propuesta de Raymond Hettinger para dicts compactos,
+y escribieron en su blog sobre esto, en
+https://fpy.li/3-20["Faster, more memory efficient and more ordered dictionaries on PyPy" (_Diccionarios más rápidos, más eficientes en memoria y más ordenados en PyPy_)]
+(EN), reconociendo que un diseño similar fue adoptado en PHP 7,
+como se describe en https://fpy.li/3-21[PHP's new hashtable implementation (_La nueva implementación de tablas de hash de PHP_)]
+(EN). Siempre es muy bueno cuando los creadores citan trabajos anteriores de otros.
+
+En la PyCon 2017, Brandon Rhodes presentó
+https://fpy.li/3-22["The Dictionary Even Mightier" (_El diccionario, aún más poderoso_)]
+(EN), una continuación de su clásica presentación animada
+https://fpy.li/3-23["The Mighty Dictionary" (_El poderoso diccionario_)]
+(EN)—¡incluyendo colisiones de hash animadas!
+Otro video actual pero más detallado sobre el funcionamiento interno del `dict` de Python es
+https://fpy.li/3-24["Modern Dictionaries" (_Diccionarios modernos_)] (EN) de Raymond Hettinger,
+donde cuenta que tras no lograr convencer a los mantenedores de Python sobre los dicts compactos,
+persuadió al equipo de PyPy, quienes los adoptaron, la idea ganó fuerza, y finalmente fue
+https://fpy.li/3-25[agregada] al CPython 3.6 por INADA Naoki.
+Para conocer todos los detalles,
+echa un vistazo a los extensos comentarios en el código fuente de CPython para
+https://fpy.li/3-26[_Objects/dictobject.c_] (EN) y en el documento de diseño en
+https://fpy.li/3-27[_Objects/dictnotes.txt_] (EN).
+
+La justificativa para la adición de conjuntos a Python está documentada en la
+https://fpy.li/pep218[PEP 218--Adding a Built-In Set Object Type (_Agregar un tipo de objeto conjunto integrado_)].
+Cuando se aprobó la PEP 218, no se adoptó ninguna sintaxis literal especial para conjuntos.
+Los literales `set` fueron creados para Python 3 e implementados retroactivamente en Python 2.7,
+así como las comprensiones de `dict` y `set`.
+En la PyCon 2019, presenté
+https://fpy.li/3-29["Set Practice: learning from Python's set types" (_La Práctica de los Conjuntos: aprendiendo de los tipos conjunto de Python_)] (EN), (https://fpy.li/3-28[video]),
+describiendo casos de uso de conjuntos en programas reales, hablando sobre el diseño de su API,
+y sobre la implementación de la https://fpy.li/3-30[`uintset`], una clase de conjunto para elementos enteros,
+usando un vector de bits en vez de una tabla de hash,
+inspirada por un ejemplo del capítulo 6 del excelente
+https://fpy.li/38[_The Go Programming Language_ (_El Lenguaje de Programación Go_)] (EN),
+de Alan Donovan y Brian Kernighan (Addison-Wesley).
+
+La revista _Spectrum_, del IEEE, tiene un artículo sobre Hans Peter Luhn,
+un prolífico inventor que patentó un conjunto de tarjetas interconectadas que permitían seleccionar
+recetas de cócteles a partir de los ingredientes disponibles, entre innumerables otras invenciones, incluyendo...
+¡tablas de hash!
+Ver https://fpy.li/3-31["Hans Peter Luhn and the Birth of the Hashing Algorithm" (_Hans Peter Luhn y el Nacimiento del Algoritmo de Hash_)].
+
+.Punto de Vista
+****
+
+[role="soapbox-title"]
+*Azúcar sintáctico*
+
+Mi((("dictionaries and sets", "Soapbox discussion")))((("Soapbox sidebars", "syntactic sugar")))((("syntactic sugar")))
+amigo Geraldo Cohen cierta vez observó que Python es "simple y correcto."
+
+A los puristas de los lenguajes de programación les gusta despreciar la sintaxis como algo poco importante.
+
+[quote, Alan Perlis]
+____
+Syntactic sugar causes cancer of the semicolon.footnote:[NT: Explicando el juego de palabras intraducible:
+"colon", en inglés, designa "la parte central del intestino grueso"; "semicolon", por otro lado, es "punto y coma".
+La frase dice, literalmente, "El azúcar sintáctico causa cáncer en el punto y coma",
+que tiene sentido en inglés por la proximidad sonora de las palabras.]
+____
+
+La sintaxis es la interfaz de usuario de un lenguaje de programación, por lo que tiene mucha importancia en la práctica.
+
+Antes de encontrar Python, hice algo de programación para la Web usando Perl y PHP.
+La sintaxis para mapeos en esos lenguajes es muy útil.
+La echo mucho de menos cuando tengo que usar Java o C.
+
+Una buena sintaxis para mapeos literales es muy conveniente para configuración,
+para implementaciones guiadas por tablas, y para contener datos para prototipado y pruebas.
+Esta fue una de las lecciones que los diseñadores de Go aprendieron de los lenguajes dinámicos.
+La falta de una buena forma de expresar datos estructurados en el código empujó
+a la comunidad Java a adoptar el prolijo y excesivamente complejo XML como formato de datos.
+
+JSON fue propuesto como https://fpy.li/3-32["The Fat-Free Alternative to XML" (_La alternativa sin grasa al XML_)]
+y se convirtió en un éxito enorme, reemplazando a XML en varios contextos.
+Una sintaxis concisa para listas y diccionarios resulta en un excelente formato para intercambio de datos.
+
+PHP y Ruby imitaron la sintaxis de hash de Perl, usando `\=>` para ligar claves a valores.
+JavaScript usa `:` como Python.
+¿Por qué usar dos caracteres, cuando uno ya es suficientemente legible?
+
+JSON vino de JavaScript, pero por casualidad también es casi un subconjunto exacto de la sintaxis de Python.
+JSON es compatible con Python, excepto por usar `true`, `false`, y `null` en vez de `True`, `False`, y `None`.
+
+Armin Ronacher https://fpy.li/3-33[tuiteó] que le gusta jugar con el espacio de nombres global de Python,
+para agregar alias compatibles con JSON para `True`, `False`, y `None` de Python,
+ya que así puede pegar fragmentos de JSON directamente en la consola.
+Su idea básica:
+
+[role="pagebreak-before less_space"]
+[source, python]
+----
+>>> true, false, null = True, False, None
+>>> fruit = {
+...     "type": "banana",
+...     "avg_weight": 123.2,
+...     "edible_peel": false,
+...     "species": ["acuminata", "balbisiana", "paradisiaca"],
+...     "issues": null,
+... }
+>>> fruit
+{'type': 'banana', 'avg_weight': 123.2, 'edible_peel': False,
+'species': ['acuminata', 'balbisiana', 'paradisiaca'], 'issues': None}
+----
+
+La sintaxis que todo el mundo usa ahora para intercambiar datos es la sintaxis de `dict` y `list` de Python.
+Ahora tenemos una sintaxis agradable con la conveniencia de la preservación del orden de inserción.
+
+Simple y correcto.
+****
