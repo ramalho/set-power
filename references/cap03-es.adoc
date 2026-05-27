@@ -336,7 +336,7 @@ Lo discutiremos en detalle en el <<ch_ifaces_prot_abc>>.
 
 [[mapping_uml]]
 .Diagrama de clases simplificado para `MutableMapping` y sus superclases de `collections.abc` (las flechas de herencia apuntan de las subclases a las superclases; los nombres en cursiva indican clases y métodos abstractos
-image::../images/flpy_0301.png[Diagrama de clases UML para `Mapping` y `MutableMapping`]
+image::images/flpy_0301.png[Diagrama de clases UML para `Mapping` y `MutableMapping`]
 
 Para implementar un mapeo personalizado, es más fácil extender `collections.UserDict`,
 o envolver un `dict` por composición, en vez de crear una subclase de estos ABCs.
@@ -1405,7 +1405,7 @@ https://fpy.li/pep448[PEP 448—Additional Unpacking Generalizations (_Generaliz
 
 [[set_uml]]
 .Diagrama de clases UML simplificado para `MutableSet` y sus superclases en `collections.abc` (los nombres en cursiva son clases y métodos abstractos; los métodos de operadores reversos fueron omitidos por concisión).
-image::../images/flpy_0302.png[Diagrama de clases UML para `Set` y `MutableSet`]
+image::images/flpy_0302.png[Diagrama de clases UML para `Set` y `MutableSet`]
 
 [[set_operators_tbl]]
 .Operaciones matemáticas con conjuntos: estos métodos producen un nuevo conjunto o actualizan el conjunto objetivo internamente, si es mutable

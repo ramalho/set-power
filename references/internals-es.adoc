@@ -413,7 +413,7 @@ La clave debe ser un objeto hashable, y el algoritmo de tabla de hash garantiza 
 Pero el valor puede ser cualquier objeto—no necesita ser hashable ni único.
 
 Raymond Hettinger observó que se podrían hacer ahorros significativos si el código hash y los punteros a la clave y al valor se mantuvieran en un array `entries` sin filas vacías,
-y la tabla de hash real fuera un array disperso con cubetas mucho más pequeñas que contienen índices al array `entries`footnote:[Es irónico que las cubetas en la tabla de hash aquí no contienen códigos hash, sino solo índices al array `entries` donde están los códigos hash. Pero, conceptualmente, el array `index` es realmente la tabla de hash en esta implementación, aunque no haya hashes en sus cubetas.].
+y la tabla de hash real fuera un array disperso con cubetas mucho más pequeñas que contienen índices al array `entries`.footnote:[Es irónico que las cubetas en la tabla de hash aquí no contienen códigos hash, sino solo índices al array `entries` donde están los códigos hash. Pero, conceptualmente, el array `index` es realmente la tabla de hash en esta implementación, aunque no haya hashes en sus cubetas.]
 En su https://mail.python.org/pipermail/python-dev/2012-December/123028.html[mensaje original a _python-dev_],
 Hettinger llamó a la tabla de hash `indices`. El ancho de las cubetas en `indices` varía a medida que el `dict` crece, comenzando con 8 bits por cubeta—suficiente para indexar hasta 128 entradas, reservando valores negativos para propósitos especiales, como -1 para vacío y -2 para eliminado.
 
