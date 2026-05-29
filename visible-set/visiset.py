@@ -133,7 +133,7 @@ VISISET_CSS = """
     text-align: right;
     border: 1px solid #ccc;
 }
-.vs-table td { background: #fff; }
+.vs-table td { background: #fff; color: #000; }
 .vs-table th:nth-child(1), .vs-table td:nth-child(1) { background: #DDD; color: #000; border-color: #000; }
 .vs-table th:nth-child(3), .vs-table td:nth-child(3) { text-align: left; }
 .vs-table tr.vs-empty td { color: #bbb; }
