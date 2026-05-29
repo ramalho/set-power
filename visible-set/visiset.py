@@ -86,21 +86,22 @@ class VisiSet:
     def _repr_html_(self):
         rows = []
         n = len(self._table)
-        for row in self._table:
+        for bucket, row in enumerate(self._table):
             h = row['hash']
             if row['value'] is NULL:
                 rows.append(
-                    f"<tr class='vs-empty'><td>{h}</td><td></td><td>{NULL_SYMBOL}</td></tr>"
+                    f"<tr class='vs-empty'><td></td><td>{h}</td><td>{NULL_SYMBOL}</td></tr>"
                 )
             else:
                 slot = h % n
+                slot_style = ' style="color:#8b0000"' if slot != bucket else ''
                 v = repr(row['value'])
-                rows.append(f'<tr><td>{h}</td><td>{slot}</td><td>{POINTER_SYMBOL} {v}</td></tr>')
+                rows.append(f'<tr><td{slot_style}>{slot}</td><td>{h}</td><td>{POINTER_SYMBOL} {v}</td></tr>')
         return (
             VISISET_CSS
             + "<div class='vs-wrap'>"
             + "<table class='vs-table'>"
-            + '<thead><tr><th>hash</th><th>%</th><th>value</th></tr></thead>'
+            + '<thead><tr><th>%</th><th>hash</th><th>value</th></tr></thead>'
             + '<tbody>'
             + ''.join(rows)
             + '</tbody>'
@@ -122,18 +123,18 @@ VISISET_CSS = """
 .vs-table th {
     background: #2b2b2b;
     color: #ddd;
-    padding: 3px 14px 3px 6px;
+    padding: 3px 6px 3px 6px;
     text-align: right;
     font-weight: normal;
     border: 1px solid #444;
 }
 .vs-table td {
-    padding: 2px 14px 2px 6px;
+    padding: 2px 6px 2px 6px;
     text-align: right;
     border: 1px solid #ccc;
 }
 .vs-table td { background: #fff; }
-.vs-table th:nth-child(2), .vs-table td:nth-child(2) { text-align: center; }
+.vs-table th:nth-child(1), .vs-table td:nth-child(1) { background: #DDD; color: #000; border-color: #000; }
 .vs-table th:nth-child(3), .vs-table td:nth-child(3) { text-align: left; }
 .vs-table tr.vs-empty td { color: #bbb; }
 </style>
