@@ -94,9 +94,9 @@ class VisiSet:
                 )
             else:
                 slot = h % n
-                slot_style = ' style="color:#8b0000 !important"' if slot != bucket else ''
+                slot_class = 'vs-displaced' if slot != bucket else 'vs-slot'
                 v = repr(row['value'])
-                rows.append(f'<tr><td{slot_style}>{slot}</td><td>{h}</td><td>{POINTER_SYMBOL} {v}</td></tr>')
+                rows.append(f"<tr class='vs-data'><td class='{slot_class}'>{slot}</td><td class='vs-hash'>{h}</td><td class='vs-val'>{POINTER_SYMBOL} {v}</td></tr>")
         return (
             VISISET_CSS
             + "<div class='vs-wrap'>"
@@ -133,9 +133,11 @@ VISISET_CSS = """
     text-align: right;
     border: 1px solid #ccc;
 }
-.vs-table td { background: #fff; color: #000 !important; }
-.vs-table th:nth-child(1), .vs-table td:nth-child(1) { background: #DDD; color: #000; border-color: #000; }
+.vs-table td { background: #fff; }
+.vs-table th:nth-child(1), .vs-table td:nth-child(1) { background: #DDD; border-color: #000; }
 .vs-table th:nth-child(3), .vs-table td:nth-child(3) { text-align: left; }
-.vs-table tr.vs-empty td { color: #bbb !important; }
+.vs-table tr.vs-empty td { color: #bbb; }
+.vs-table td.vs-slot, .vs-table td.vs-hash, .vs-table td.vs-val { color: #000; }
+.vs-table td.vs-displaced { color: #8b0000; }
 </style>
 """
