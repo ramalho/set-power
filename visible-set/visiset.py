@@ -1,7 +1,9 @@
 import numpy as np
 
+INITIAL_SIZE = 8
 EMPTY_BUCKET = -1  # -1 is never returned by hash() in CPython
 NULL = object()  # sentinel representing a null pointer
+DEFAULT_HASH_BASE = 16
 
 
 class VisiSet:
@@ -11,20 +13,22 @@ class VisiSet:
     Empty slots hold hash=-1 and value=NULL.
     """
 
-    _dtype = np.dtype([('hash', np.int64), ('value', object)])
-    _INIT_SIZE = 8
+    def __init__(self, iterable=(), hash_base=DEFAULT_HASH_BASE):
+        self._len = 0
+        self._hash_base = hash_base
+        self._table = self._make_table(INITIAL_SIZE)
+        self.update(iterable)
 
     def _make_table(self, size):
-        table = np.empty(size, dtype=self._dtype)
+        table = np.empty(size, dtype=[('hash', np.int64), ('value', object)])
         table['hash'][:] = EMPTY_BUCKET
         table['value'][:] = NULL
         return table
 
-    def __init__(self, iterable=()):
-        self._table = self._make_table(self._INIT_SIZE)
-        self._len = 0
-        for item in iterable:
-            self.add(item)
+    def update(self, *others):
+        for other in others:
+            for item in other:
+                self.add(item)
 
     # ---- set interface -------------------------------------------------------
 
@@ -71,7 +75,18 @@ class VisiSet:
             if row['value'] is not NULL:
                 yield row['value']
 
+    def union(self, *others):
+        result = VisiSet(self, hash_base=self._hash_base)
+        result.update(*others)
+        return result
+
     # ---- display -------------------------------------------------------------
+
+    def _fmt_hash(self, h):
+        if self._hash_base == 10:
+            return str(int(h))
+        fmt = '064b' if self._hash_base == 2 else '016x'
+        return f'{int(h) & 0xFFFF_FFFF_FFFF_FFFF:{fmt}}'
 
     def __repr__(self):
         """Instances are represented as:
@@ -88,20 +103,23 @@ class VisiSet:
         n = len(self._table)
         for bucket, row in enumerate(self._table):
             h = row['hash']
-            h_hex = f'{int(h) & 0xFFFF_FFFF_FFFF_FFFF:016x}'
+            h_str = self._fmt_hash(h)
             if row['value'] is NULL:
                 rows.append(
-                    f"<tr class='vs-empty'><td></td><td>{h_hex}</td><td>{NULL_SYMBOL}</td></tr>"
+                    f'<tr class="vs-empty"><td></td><td>{h_str}</td><td>{NULL_SYMBOL}</td></tr>'
                 )
             else:
                 slot = h % n
                 slot_class = 'vs-displaced' if slot != bucket else 'vs-slot'
                 v = repr(row['value'])
-                rows.append(f"<tr class='vs-data'><td class='{slot_class}'>{slot}</td><td class='vs-hash'>{h_hex}</td><td class='vs-val'>{POINTER_SYMBOL} {v}</td></tr>")
+                rows.append(
+                    f'<tr class="vs-data"><td class="{slot_class}">{slot}</td>'
+                    f'<td class="vs-hash">{h_str}</td><td class="vs-val">{POINTER_SYMBOL} {v}</td></tr>'
+                )
         return (
             VISISET_CSS
-            + "<div class='vs-wrap'>"
-            + "<table class='vs-table'>"
+            + '<div class="vs-wrap">'
+            + '<table class="vs-table">'
             + '<thead><tr><th>%</th><th>hash</th><th>value</th></tr></thead>'
             + '<tbody>'
             + ''.join(rows)
@@ -109,6 +127,7 @@ class VisiSet:
             + '</table>'
             + '</div>'
         )
+
 
 POINTER_SYMBOL = '\N{RIGHTWARDS TRIANGLE-HEADED ARROW}'
 NULL_SYMBOL = '\N{RISING DIAGONAL CROSSING FALLING DIAGONAL}'
