@@ -16,7 +16,8 @@ class HashTable:
         self._item_count = 0
         self._table = self._make_table(size)
 
-    def _make_table(self, size):
+    @staticmethod
+    def _make_table(size):
         table = np.empty(size, dtype=[('hash', np.int64), ('value', object)])
         table['hash'][:] = EMPTY_HASH
         table['value'][:] = NULL
