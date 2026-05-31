@@ -4,9 +4,7 @@ DEFAULT_HASH_FORMAT_BASE = 16
 
 
 class VisiSet:
-    """Set backed by a HashTable of (hash, value) rows.
-
-    Emulates CPython's set hash table: 8 initial slots, linear probing on collision.
+    """Set backed by a HashTable with (hash, value) rows.
     """
 
     def __init__(self, iterable=(), fmt_base=DEFAULT_HASH_FORMAT_BASE):
