@@ -29,10 +29,10 @@ def test_add_new_element():
 
 
 def test_add_duplicate_ignored():
-    items = ['a', 'b', 'c']
-    vs = VisiSet(items)
+    elements = ['a', 'b', 'c']
+    vs = VisiSet(elements)
     vs.add('b')
-    assert len(vs) == len(items)
+    assert len(vs) == len(elements)
 
 
 def test_contains_true():
@@ -46,9 +46,9 @@ def test_contains_false():
 
 
 def test_repr():
-    items = ['a', 'b', 'c', 'd']
-    vs = VisiSet(items)
+    elements = ['a', 'b', 'c', 'd']
+    vs = VisiSet(elements)
     r = repr(vs)
     assert r.startswith('VisiSet(')
-    for item in items:
-        assert f"'{item}'" in r
+    for element in elements:
+        assert f"'{element}'" in r

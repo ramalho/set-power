@@ -13,16 +13,16 @@ class VisiSet:
 
     def update(self, *others):
         for other in others:
-            for item in other:
-                self._hashtable.add(item)
+            for element in other:
+                self._hashtable.add(element)
 
     # ---- set interface -------------------------------------------------------
 
-    def add(self, item):
-        self._hashtable.add(item)
+    def add(self, element):
+        self._hashtable.add(element)
 
-    def __contains__(self, item):
-        return item in self._hashtable
+    def __contains__(self, element):
+        return element in self._hashtable
 
     def __len__(self):
         return len(self._hashtable)
@@ -50,8 +50,8 @@ class VisiSet:
         VisiSet({1, 2, 3})
 
         """
-        items = ', '.join(repr(v) for v in self)
-        return f'VisiSet({{{items}}})'
+        elements = ', '.join(repr(v) for v in self)
+        return f'VisiSet({{{elements}}})'
 
     def _repr_html_(self):
         rows = []

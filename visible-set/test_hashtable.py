@@ -51,14 +51,14 @@ def test_grow_doubles_capacity():
     assert len(ht._table) == old_capacity * 2
 
 
-def test_grow_preserves_items():
+def test_grow_preserves_elements():
     ht = HashTable()
-    items = ['a', 'b', 'c']
-    for item in items:
-        ht.add(item)
+    elements = ['a', 'b', 'c']
+    for element in elements:
+        ht.add(element)
     ht._grow()
-    assert len(ht) == len(items)
-    assert set(ht) == set(items)
+    assert len(ht) == len(elements)
+    assert set(ht) == set(elements)
 
 
 def test_add_triggers_grow():
@@ -71,7 +71,7 @@ def test_add_triggers_grow():
     assert set(ht) == set(range(6))
 
 
-def test_find_returns_hash_and_slot_for_present_item():
+def test_find_returns_hash_and_slot_for_present_element():
     ht = HashTable()
     ht.add('hello')
     loc, h = ht.locate('hello')
@@ -79,7 +79,7 @@ def test_find_returns_hash_and_slot_for_present_item():
     assert ht._table['value'][loc] == 'hello'
 
 
-def test_find_returns_no_hash_and_empty_slot_for_absent_item():
+def test_find_returns_no_hash_and_empty_slot_for_absent_element():
     ht = HashTable()
     ht.add('hello')
     loc, h = ht.locate('world')
@@ -96,11 +96,11 @@ def test_find_on_empty_table():
 
 def test_find_loc_is_insertion_point_when_not_found():
     ht = HashTable()
-    item = 'new'
-    loc, h = ht.locate(item)
+    element = 'new'
+    loc, h = ht.locate(element)
     assert h is EMPTY_HASH
-    ht.add(item)
-    loc2, h2 = ht.locate(item)
+    ht.add(element)
+    loc2, h2 = ht.locate(element)
     assert h2 is not EMPTY_HASH
     assert loc == loc2  # same slot used for insertion
-    assert h2 == hash(item)
+    assert h2 == hash(element)
