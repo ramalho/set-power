@@ -74,33 +74,33 @@ def test_add_triggers_grow():
 def test_find_returns_hash_and_slot_for_present_item():
     ht = HashTable()
     ht.add('hello')
-    idx, h = ht.locate('hello')
+    loc, h = ht.locate('hello')
     assert h is not EMPTY_HASH
-    assert ht._table['value'][idx] == 'hello'
+    assert ht._table['value'][loc] == 'hello'
 
 
 def test_find_returns_no_hash_and_empty_slot_for_absent_item():
     ht = HashTable()
     ht.add('hello')
-    idx, h = ht.locate('world')
+    loc, h = ht.locate('world')
     assert h is EMPTY_HASH
-    assert ht._table['value'][idx] is NULL
+    assert ht._table['value'][loc] is NULL
 
 
 def test_find_on_empty_table():
     ht = HashTable()
-    idx, h = ht.locate(42)
+    loc, h = ht.locate(42)
     assert h is EMPTY_HASH
-    assert idx == hash(42) % len(ht._table)
+    assert loc == hash(42) % len(ht._table)
 
 
-def test_find_idx_is_insertion_point_when_not_found():
+def test_find_loc_is_insertion_point_when_not_found():
     ht = HashTable()
     item = 'new'
-    idx, h = ht.locate(item)
+    loc, h = ht.locate(item)
     assert h is EMPTY_HASH
     ht.add(item)
-    idx2, h2 = ht.locate(item)
+    loc2, h2 = ht.locate(item)
     assert h2 is not EMPTY_HASH
-    assert idx == idx2  # same slot used for insertion
+    assert loc == loc2  # same slot used for insertion
     assert h2 == hash(item)

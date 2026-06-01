@@ -54,8 +54,8 @@ class HashTable:
         """
         h = hash(item)
         offset = h % len(self._table)
-        while self._table['value'][offset] is not NULL:
-            if self._table['value'][offset] == item:
+        while (v:= self._table['value'][offset]) is not NULL:
+            if v == item:
                 return offset, h
             offset = (offset + 1) % len(self._table)
         return offset, EMPTY_HASH
