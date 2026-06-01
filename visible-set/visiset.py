@@ -4,8 +4,7 @@ DEFAULT_HASH_FORMAT_BASE = 16
 
 
 class VisiSet:
-    """Set backed by a HashTable with (hash, value) rows.
-    """
+    """Set backed by a HashTable with (hash, value) rows."""
 
     def __init__(self, iterable=(), fmt_base=DEFAULT_HASH_FORMAT_BASE):
         self._fmt_base = fmt_base
