@@ -1,0 +1,24 @@
+﻿sets
+	implementation
+		operator overloading
+		hash tables
+			VisiSet demo
+		bit vector
+			UintSet
+	examples
+		motivating "tickets"
+	API
+		built-in classes
+			frozenset (first!)
+			set
+		abstract classes
+		DX analysis
+			operators x methods
+			minimal x convenience methods
+			comparison to languages
+	math
+		logic
+			De Morgan's laws
+		notation
+			similarity to comprehensions
+		operations
