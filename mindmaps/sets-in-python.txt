@@ -22,3 +22,12 @@
 		notation
 			similarity to comprehensions
 		operations
+	conclusion
+		applied Python features
+			set comprehension
+			generator expression
+			iterator protocol
+			operator overloading
+		sets, logic and databases
+		sets in practice
+		Pythonic API design

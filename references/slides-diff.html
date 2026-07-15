@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python Set Practice — 2018 vs 2019 slides</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f4f4f5;
+    color: #18181b;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #18181b; color: #f4f4f5; }
+  }
+  header.page {
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(128,128,128,.3);
+  }
+  header.page h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  header.page p { margin: 4px 0 0; opacity: .7; font-size: 13px; }
+  .cols {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 12px 24px;
+    background: #e4e4e7;
+    border-bottom: 1px solid rgba(128,128,128,.3);
+    font-weight: 600;
+    text-align: center;
+  }
+  @media (prefers-color-scheme: dark) {
+    .cols { background: #27272a; }
+  }
+  .grid { padding: 16px 24px 48px; }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: start;
+  }
+  .row img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid rgba(128,128,128,.35);
+    border-radius: 4px;
+    background: #fff;
+  }
+  .row a { display: block; line-height: 0; }
+  .blank {
+    width: 100%;
+    aspect-ratio: 2134 / 1600;
+    border: 1px dashed rgba(128,128,128,.35);
+    border-radius: 4px;
+    background: repeating-linear-gradient(
+      45deg, transparent, transparent 10px,
+      rgba(128,128,128,.06) 10px, rgba(128,128,128,.06) 20px);
+  }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Python Set Practice — slide-by-slide diff</h1>
+  <p>2018 deck (43 slides) vs. PyCon Cleveland 2019 deck (52 slides). Click any slide for full size.</p>
+</header>
+<div class="cols"><div>2018</div><div>2019</div></div>
+<div class="grid">
+    <div class="row">
+      <a href="slides-2018/slide-01.png" target="_blank"><img src="slides-2018/slide-01.png" alt="slides-2018 slide 1" loading="lazy"></a>
+      <a href="slides-2019/slide-01.png" target="_blank"><img src="slides-2019/slide-01.png" alt="slides-2019 slide 1" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-02.png" target="_blank"><img src="slides-2019/slide-02.png" alt="slides-2019 slide 2" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-02.png" target="_blank"><img src="slides-2018/slide-02.png" alt="slides-2018 slide 2" loading="lazy"></a>
+      <a href="slides-2019/slide-03.png" target="_blank"><img src="slides-2019/slide-03.png" alt="slides-2019 slide 3" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-03.png" target="_blank"><img src="slides-2018/slide-03.png" alt="slides-2018 slide 3" loading="lazy"></a>
+      <a href="slides-2019/slide-04.png" target="_blank"><img src="slides-2019/slide-04.png" alt="slides-2019 slide 4" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-04.png" target="_blank"><img src="slides-2018/slide-04.png" alt="slides-2018 slide 4" loading="lazy"></a>
+      <a href="slides-2019/slide-05.png" target="_blank"><img src="slides-2019/slide-05.png" alt="slides-2019 slide 5" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-05.png" target="_blank"><img src="slides-2018/slide-05.png" alt="slides-2018 slide 5" loading="lazy"></a>
+      <a href="slides-2019/slide-06.png" target="_blank"><img src="slides-2019/slide-06.png" alt="slides-2019 slide 6" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-06.png" target="_blank"><img src="slides-2018/slide-06.png" alt="slides-2018 slide 6" loading="lazy"></a>
+      <a href="slides-2019/slide-07.png" target="_blank"><img src="slides-2019/slide-07.png" alt="slides-2019 slide 7" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-07.png" target="_blank"><img src="slides-2018/slide-07.png" alt="slides-2018 slide 7" loading="lazy"></a>
+      <a href="slides-2019/slide-08.png" target="_blank"><img src="slides-2019/slide-08.png" alt="slides-2019 slide 8" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-08.png" target="_blank"><img src="slides-2018/slide-08.png" alt="slides-2018 slide 8" loading="lazy"></a>
+      <a href="slides-2019/slide-09.png" target="_blank"><img src="slides-2019/slide-09.png" alt="slides-2019 slide 9" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-09.png" target="_blank"><img src="slides-2018/slide-09.png" alt="slides-2018 slide 9" loading="lazy"></a>
+      <a href="slides-2019/slide-10.png" target="_blank"><img src="slides-2019/slide-10.png" alt="slides-2019 slide 10" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-10.png" target="_blank"><img src="slides-2018/slide-10.png" alt="slides-2018 slide 10" loading="lazy"></a>
+      <a href="slides-2019/slide-11.png" target="_blank"><img src="slides-2019/slide-11.png" alt="slides-2019 slide 11" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-11.png" target="_blank"><img src="slides-2018/slide-11.png" alt="slides-2018 slide 11" loading="lazy"></a>
+      <a href="slides-2019/slide-12.png" target="_blank"><img src="slides-2019/slide-12.png" alt="slides-2019 slide 12" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-12.png" target="_blank"><img src="slides-2018/slide-12.png" alt="slides-2018 slide 12" loading="lazy"></a>
+      <a href="slides-2019/slide-13.png" target="_blank"><img src="slides-2019/slide-13.png" alt="slides-2019 slide 13" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-13.png" target="_blank"><img src="slides-2018/slide-13.png" alt="slides-2018 slide 13" loading="lazy"></a>
+      <a href="slides-2019/slide-14.png" target="_blank"><img src="slides-2019/slide-14.png" alt="slides-2019 slide 14" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-14.png" target="_blank"><img src="slides-2018/slide-14.png" alt="slides-2018 slide 14" loading="lazy"></a>
+      <a href="slides-2019/slide-15.png" target="_blank"><img src="slides-2019/slide-15.png" alt="slides-2019 slide 15" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-15.png" target="_blank"><img src="slides-2018/slide-15.png" alt="slides-2018 slide 15" loading="lazy"></a>
+      <a href="slides-2019/slide-16.png" target="_blank"><img src="slides-2019/slide-16.png" alt="slides-2019 slide 16" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-16.png" target="_blank"><img src="slides-2018/slide-16.png" alt="slides-2018 slide 16" loading="lazy"></a>
+      <a href="slides-2019/slide-17.png" target="_blank"><img src="slides-2019/slide-17.png" alt="slides-2019 slide 17" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-17.png" target="_blank"><img src="slides-2018/slide-17.png" alt="slides-2018 slide 17" loading="lazy"></a>
+      <a href="slides-2019/slide-18.png" target="_blank"><img src="slides-2019/slide-18.png" alt="slides-2019 slide 18" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-18.png" target="_blank"><img src="slides-2018/slide-18.png" alt="slides-2018 slide 18" loading="lazy"></a>
+      <a href="slides-2019/slide-19.png" target="_blank"><img src="slides-2019/slide-19.png" alt="slides-2019 slide 19" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-19.png" target="_blank"><img src="slides-2018/slide-19.png" alt="slides-2018 slide 19" loading="lazy"></a>
+      <a href="slides-2019/slide-20.png" target="_blank"><img src="slides-2019/slide-20.png" alt="slides-2019 slide 20" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-20.png" target="_blank"><img src="slides-2018/slide-20.png" alt="slides-2018 slide 20" loading="lazy"></a>
+      <a href="slides-2019/slide-21.png" target="_blank"><img src="slides-2019/slide-21.png" alt="slides-2019 slide 21" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-21.png" target="_blank"><img src="slides-2018/slide-21.png" alt="slides-2018 slide 21" loading="lazy"></a>
+      <a href="slides-2019/slide-22.png" target="_blank"><img src="slides-2019/slide-22.png" alt="slides-2019 slide 22" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-22.png" target="_blank"><img src="slides-2018/slide-22.png" alt="slides-2018 slide 22" loading="lazy"></a>
+      <a href="slides-2019/slide-23.png" target="_blank"><img src="slides-2019/slide-23.png" alt="slides-2019 slide 23" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-23.png" target="_blank"><img src="slides-2018/slide-23.png" alt="slides-2018 slide 23" loading="lazy"></a>
+      <div class="blank"></div>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-24.png" target="_blank"><img src="slides-2018/slide-24.png" alt="slides-2018 slide 24" loading="lazy"></a>
+      <a href="slides-2019/slide-24.png" target="_blank"><img src="slides-2019/slide-24.png" alt="slides-2019 slide 24" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-25.png" target="_blank"><img src="slides-2018/slide-25.png" alt="slides-2018 slide 25" loading="lazy"></a>
+      <a href="slides-2019/slide-25.png" target="_blank"><img src="slides-2019/slide-25.png" alt="slides-2019 slide 25" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-26.png" target="_blank"><img src="slides-2018/slide-26.png" alt="slides-2018 slide 26" loading="lazy"></a>
+      <a href="slides-2019/slide-26.png" target="_blank"><img src="slides-2019/slide-26.png" alt="slides-2019 slide 26" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-27.png" target="_blank"><img src="slides-2018/slide-27.png" alt="slides-2018 slide 27" loading="lazy"></a>
+      <a href="slides-2019/slide-27.png" target="_blank"><img src="slides-2019/slide-27.png" alt="slides-2019 slide 27" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-28.png" target="_blank"><img src="slides-2018/slide-28.png" alt="slides-2018 slide 28" loading="lazy"></a>
+      <a href="slides-2019/slide-28.png" target="_blank"><img src="slides-2019/slide-28.png" alt="slides-2019 slide 28" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-29.png" target="_blank"><img src="slides-2018/slide-29.png" alt="slides-2018 slide 29" loading="lazy"></a>
+      <a href="slides-2019/slide-29.png" target="_blank"><img src="slides-2019/slide-29.png" alt="slides-2019 slide 29" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-30.png" target="_blank"><img src="slides-2018/slide-30.png" alt="slides-2018 slide 30" loading="lazy"></a>
+      <a href="slides-2019/slide-30.png" target="_blank"><img src="slides-2019/slide-30.png" alt="slides-2019 slide 30" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-31.png" target="_blank"><img src="slides-2018/slide-31.png" alt="slides-2018 slide 31" loading="lazy"></a>
+      <a href="slides-2019/slide-31.png" target="_blank"><img src="slides-2019/slide-31.png" alt="slides-2019 slide 31" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-32.png" target="_blank"><img src="slides-2018/slide-32.png" alt="slides-2018 slide 32" loading="lazy"></a>
+      <a href="slides-2019/slide-32.png" target="_blank"><img src="slides-2019/slide-32.png" alt="slides-2019 slide 32" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-33.png" target="_blank"><img src="slides-2018/slide-33.png" alt="slides-2018 slide 33" loading="lazy"></a>
+      <a href="slides-2019/slide-33.png" target="_blank"><img src="slides-2019/slide-33.png" alt="slides-2019 slide 33" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-34.png" target="_blank"><img src="slides-2018/slide-34.png" alt="slides-2018 slide 34" loading="lazy"></a>
+      <a href="slides-2019/slide-34.png" target="_blank"><img src="slides-2019/slide-34.png" alt="slides-2019 slide 34" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-35.png" target="_blank"><img src="slides-2018/slide-35.png" alt="slides-2018 slide 35" loading="lazy"></a>
+      <a href="slides-2019/slide-35.png" target="_blank"><img src="slides-2019/slide-35.png" alt="slides-2019 slide 35" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-36.png" target="_blank"><img src="slides-2018/slide-36.png" alt="slides-2018 slide 36" loading="lazy"></a>
+      <div class="blank"></div>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-37.png" target="_blank"><img src="slides-2018/slide-37.png" alt="slides-2018 slide 37" loading="lazy"></a>
+      <div class="blank"></div>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-38.png" target="_blank"><img src="slides-2018/slide-38.png" alt="slides-2018 slide 38" loading="lazy"></a>
+      <a href="slides-2019/slide-36.png" target="_blank"><img src="slides-2019/slide-36.png" alt="slides-2019 slide 36" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-39.png" target="_blank"><img src="slides-2018/slide-39.png" alt="slides-2018 slide 39" loading="lazy"></a>
+      <a href="slides-2019/slide-37.png" target="_blank"><img src="slides-2019/slide-37.png" alt="slides-2019 slide 37" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-40.png" target="_blank"><img src="slides-2018/slide-40.png" alt="slides-2018 slide 40" loading="lazy"></a>
+      <a href="slides-2019/slide-38.png" target="_blank"><img src="slides-2019/slide-38.png" alt="slides-2019 slide 38" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-39.png" target="_blank"><img src="slides-2019/slide-39.png" alt="slides-2019 slide 39" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-40.png" target="_blank"><img src="slides-2019/slide-40.png" alt="slides-2019 slide 40" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-41.png" target="_blank"><img src="slides-2019/slide-41.png" alt="slides-2019 slide 41" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-42.png" target="_blank"><img src="slides-2019/slide-42.png" alt="slides-2019 slide 42" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-43.png" target="_blank"><img src="slides-2019/slide-43.png" alt="slides-2019 slide 43" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-44.png" target="_blank"><img src="slides-2019/slide-44.png" alt="slides-2019 slide 44" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-45.png" target="_blank"><img src="slides-2019/slide-45.png" alt="slides-2019 slide 45" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-46.png" target="_blank"><img src="slides-2019/slide-46.png" alt="slides-2019 slide 46" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-47.png" target="_blank"><img src="slides-2019/slide-47.png" alt="slides-2019 slide 47" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-48.png" target="_blank"><img src="slides-2019/slide-48.png" alt="slides-2019 slide 48" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-41.png" target="_blank"><img src="slides-2018/slide-41.png" alt="slides-2018 slide 41" loading="lazy"></a>
+      <a href="slides-2019/slide-49.png" target="_blank"><img src="slides-2019/slide-49.png" alt="slides-2019 slide 49" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-42.png" target="_blank"><img src="slides-2018/slide-42.png" alt="slides-2018 slide 42" loading="lazy"></a>
+      <a href="slides-2019/slide-50.png" target="_blank"><img src="slides-2019/slide-50.png" alt="slides-2019 slide 50" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <div class="blank"></div>
+      <a href="slides-2019/slide-51.png" target="_blank"><img src="slides-2019/slide-51.png" alt="slides-2019 slide 51" loading="lazy"></a>
+    </div>
+    <div class="row">
+      <a href="slides-2018/slide-43.png" target="_blank"><img src="slides-2018/slide-43.png" alt="slides-2018 slide 43" loading="lazy"></a>
+      <a href="slides-2019/slide-52.png" target="_blank"><img src="slides-2019/slide-52.png" alt="slides-2019 slide 52" loading="lazy"></a>
+    </div>
+</div>
+</body>
+</html>
